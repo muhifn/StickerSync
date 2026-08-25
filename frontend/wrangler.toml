@@ -1,6 +1,0 @@
-[build]
-command = "pnpm install && pnpm build"
-publish_dir = ".next"
-
-[build.env]
-NEXT_PUBLIC_API_URL = "https://stickersync-api.hf.space"
