@@ -706,3 +706,69 @@ async def cleanup():
     """Daily sweep endpoint (called by external cron). Removes expired library URLs."""
     n = await lib.cleanup_expired()
     return {"removed": n}
+
+
+# ============ LIVE WATCH / TRENDING / LIBRARY BROWSE ============
+
+# view rate limit: token bucket per IP — 60 views/min
+_view_buckets: dict[str, tuple[float, float]] = {}
+
+
+def rate_limit_view(ip: str) -> None:
+    now = time.time()
+    tokens, last = _view_buckets.get(ip, (60.0, now))
+    refill = (now - last) * 1.0  # 1 token/sec
+    tokens = min(60.0, tokens + refill)
+    if tokens < 1.0:
+        raise HTTPException(status_code=429, detail="Too many view pings")
+    _view_buckets[ip] = (tokens - 1.0, now)
+    # opportunistic size guard
+    if len(_view_buckets) > 5000:
+        oldest = min(_view_buckets, key=lambda k: _view_buckets[k][1])
+        _view_buckets.pop(oldest, None)
+
+
+@app.post("/view/{sticker_id}")
+async def view_sticker(sticker_id: str, background: BackgroundTasks, request: Request):
+    """Anonymous view ping (live-watch). Fire-and-forget: 202, no auth."""
+    rate_limit_view(request.client.host if request else "local")
+    background.add_task(lib.log_view, sticker_id)
+    return {"ok": True}
+
+
+_trending_cache: dict[str, tuple[float, list]] = {"v": (0.0, [])}
+_last_stale_sweep: dict[str, float] = {"t": 0.0}
+
+
+@app.get("/trending")
+async def trending():
+    """Public live-watch board: most viewed/downloaded stickers in the last 72h.
+    Lazy stale sweep (max 1x/hour): drop library rows unviewed for 3+ days."""
+    import time as _time
+
+    now = _time.time()
+    if now - _last_stale_sweep["t"] > 3600.0:
+        _last_stale_sweep["t"] = now
+        await lib.sweep_stale(days=3)
+        await lib.prune_view_log(days=7)
+
+    ts, cached = _trending_cache.get("v", (0.0, []))
+    if cached and now - ts < 60.0:
+        return {"stickers": cached}
+
+    rows = await lib.trending_stickers(limit=12)
+    _trending_cache["v"] = (now, rows)
+    return {"stickers": rows}
+
+
+@app.get("/library")
+async def library_browse(
+    q: str = Query("", max_length=100),
+    sort: str = Query("trending", regex="^(trending|recent|downloads)$"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(24, ge=1, le=48),
+):
+    """Public library browse: FTS search + sort + pagination. Only fresh URLs."""
+    items, total = await lib.library_page(q=q.strip(), sort=sort, page=page, per_page=per_page)
+    pages = max(1, -(-total // per_page))
+    return {"stickers": items, "total": total, "page": page, "pages": pages}

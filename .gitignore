@@ -21,3 +21,15 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# AI/agent working files — keep local only, never push
+frontend/AGENTS.md
+frontend/CLAUDE.md
+frontend/DESIGN.md
+frontend/motion.md
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+motion.md
+.vercel/
+.claude/

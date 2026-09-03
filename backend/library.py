@@ -115,6 +115,101 @@ async def log_download(user_id: str, sticker_id: str, source: str) -> None:
         print(f"[log_download] failed: {e}", flush=True)
 
 
+async def log_view(sticker_id: str) -> None:
+    """Background job: anonymous view event + library popularity bump."""
+    try:
+        await db.execute(
+            "INSERT INTO view_log (sticker_id) VALUES ($1)",
+            sticker_id,
+        )
+        await db.execute(
+            "UPDATE library SET view_count = view_count + 1, last_viewed_at = now() WHERE sticker_id = $1",
+            sticker_id,
+        )
+    except Exception as e:
+        print(f"[log_view] failed: {e}", flush=True)
+
+
+async def trending_stickers(limit: int = 12) -> list[dict]:
+    """Trending: views_72h + downloads_72h*3, only non-expired URLs."""
+    rows = await db.fetch_all("""
+        SELECT l.sticker_id, l.comment_text, l.author_uid, l.url,
+               l.is_animated, l.download_count, l.view_count,
+               COALESCE(v.cnt, 0)  AS views_72h,
+               COALESCE(d.cnt, 0)  AS downloads_72h,
+               COALESCE(v.cnt, 0) + COALESCE(d.cnt, 0) * 3 AS score
+        FROM library l
+        LEFT JOIN (SELECT sticker_id, count(*) cnt FROM view_log
+                   WHERE created_at > now() - interval '72 hours' GROUP BY sticker_id) v
+            ON v.sticker_id = l.sticker_id
+        LEFT JOIN (SELECT sticker_id, count(*) cnt FROM download_log
+                   WHERE created_at > now() - interval '72 hours' GROUP BY sticker_id) d
+            ON d.sticker_id = l.sticker_id
+        WHERE l.url_expires_at > now()
+        ORDER BY score DESC, l.created_at DESC
+        LIMIT $1
+    """, limit)
+    return [dict(r) for r in rows]
+
+
+async def library_page(
+    q: str = "", sort: str = "trending", page: int = 1, per_page: int = 24
+) -> tuple[list[dict], int]:
+    """Public browse: FTS search + sort (trending/recent/downloads) + pagination."""
+    where = "url_expires_at > now()"
+    args: list = []
+    if q:
+        args.append(q)
+        where += f" AND to_tsvector('simple', comment_text) @@ plainto_tsquery('simple', ${len(args)})"
+
+    order = {
+        "trending": "view_count + download_count * 3 DESC, created_at DESC",
+        "recent": "created_at DESC",
+        "downloads": "download_count DESC, created_at DESC",
+    }.get(sort, "view_count + download_count * 3 DESC, created_at DESC")
+
+    total = await db.fetch_val(f"SELECT count(*) FROM library WHERE {where}", *args)
+    offset = (page - 1) * per_page
+    args2 = args + [per_page, offset]
+    rows = await db.fetch_all(f"""
+        SELECT sticker_id, comment_text, author_uid, url, is_animated,
+               download_count, view_count, created_at
+        FROM library
+        WHERE {where}
+        ORDER BY {order}
+        LIMIT ${len(args) + 1} OFFSET ${len(args) + 2}
+    """, *args2)
+    return [dict(r) for r in rows], total
+
+
+async def sweep_stale(days: int = 3) -> int:
+    """Remove library rows with no engagement for `days` days (live-watch TTL)."""
+    try:
+        r = await db.execute(
+            "DELETE FROM library WHERE last_viewed_at < now() - make_interval(days => $1)",
+            days,
+        )
+        m = re.search(r"DELETE (\d+)", r or "")
+        return int(m.group(1)) if m else 0
+    except Exception as e:
+        print(f"[sweep_stale] failed: {e}", flush=True)
+        return 0
+
+
+async def prune_view_log(days: int = 7) -> int:
+    """Keep view_log small: drop events older than `days`."""
+    try:
+        r = await db.execute(
+            "DELETE FROM view_log WHERE created_at < now() - make_interval(days => $1)",
+            days,
+        )
+        m = re.search(r"DELETE (\d+)", r or "")
+        return int(m.group(1)) if m else 0
+    except Exception as e:
+        print(f"[prune_view_log] failed: {e}", flush=True)
+        return 0
+
+
 async def cleanup_expired() -> int:
     """Daily sweep: delete library rows whose URL signature expired."""
     try:

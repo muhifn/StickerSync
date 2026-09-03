@@ -52,12 +52,24 @@ CREATE TABLE IF NOT EXISTS library (
     height INT DEFAULT 0,
     is_animated BOOLEAN DEFAULT TRUE,
     download_count INT NOT NULL DEFAULT 0,
+    view_count INT NOT NULL DEFAULT 0,               -- live-watch popularity
+    last_viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- stale TTL basis (3 days no engagement -> sweep)
     url_expires_at TIMESTAMPTZ,              -- parsed from x-expires
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_library_downloads ON library (download_count DESC);
 CREATE INDEX IF NOT EXISTS idx_library_author ON library (author_uid);
 CREATE INDEX IF NOT EXISTS idx_library_fts ON library USING gin (to_tsvector('simple', comment_text));
+CREATE INDEX IF NOT EXISTS idx_library_last_viewed ON library (last_viewed_at);
+
+-- 5b. View log: anonymous view events (trending window 72h, pruned > 7 days)
+CREATE TABLE IF NOT EXISTS view_log (
+    id BIGSERIAL PRIMARY KEY,
+    sticker_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_view_log_created ON view_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_view_log_sticker ON view_log (sticker_id);
 
 -- 6. Referral rewards log (idempotent)
 CREATE TABLE IF NOT EXISTS referral_rewards (
