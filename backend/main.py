@@ -660,6 +660,47 @@ async def stats():
     }
 
 
+_activity_cache: dict[str, tuple[float, list]] = {"v": (0.0, [])}
+
+
+@app.get("/activity")
+async def activity():
+    """Public anonymized activity feed: last sticker grabs (no downloader identity)."""
+    import time as _time
+
+    now = _time.time()
+    ts, cached = _activity_cache.get("v", (0.0, []))
+    if cached and now - ts < 10.0:
+        return {"events": cached}
+
+    rows = await db.fetch_all("""
+        SELECT l.comment_text, l.author_uid, d.created_at,
+               (now() - d.created_at) AS age
+        FROM download_log d
+        JOIN library l ON l.sticker_id = d.sticker_id
+        ORDER BY d.created_at DESC
+        LIMIT 8
+    """)
+    events = []
+    for r in rows:
+        age_s = int(r["age"].total_seconds()) if hasattr(r["age"], "total_seconds") else int(r["age"])
+        if age_s < 60:
+            ago = f"{age_s}s ago"
+        elif age_s < 3600:
+            ago = f"{age_s // 60}m ago"
+        elif age_s < 86400:
+            ago = f"{age_s // 3600}h ago"
+        else:
+            ago = f"{age_s // 86400}d ago"
+        events.append({
+            "comment_text": (r["comment_text"] or "")[:60],
+            "author_uid": r["author_uid"] or "",
+            "ago": ago,
+        })
+    _activity_cache["v"] = (now, events)
+    return {"events": events}
+
+
 @app.get("/cleanup")
 async def cleanup():
     """Daily sweep endpoint (called by external cron). Removes expired library URLs."""

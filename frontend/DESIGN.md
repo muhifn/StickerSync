@@ -110,3 +110,5 @@ Custom only (no shadcn/21st.dev in this build):
 ## Last updated
 
 2026-08-30 by full v3 production redesign — replaced violet-fuchsia default with warm cream + emerald sticker-studio aesthetic, Outfit/Jakarta type stack, skeleton loading, designed empty/error states.
+
+2026-09-03 by landing/app split + i18n — public landing at `/` (EN/ID switcher, auto-detect `navigator.language`, persisted in localStorage; asymmetric hero, world pool live counter, real stats from `GET /stats`, how-to divide-y, stats as `divide-x` dl rows — no cards), guarded app at `/app` (no token → redirect `/?signin=1`), shared `AuthModal` component (Google OAuth + native email form), OAuth `#token=` still lands on `/` and forwards to `/app`. App remains English-only.

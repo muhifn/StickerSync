@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -10,12 +10,12 @@ import {
   Sticker as StickerIcon,
   DownloadSimple,
   Check,
-  Gift,
   Coins,
   X,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken, clearSession, refreshBalance } from "@/lib/auth";
 import { AuthModal } from "@/components/AuthModal";
+import { Navbar } from "@/components/Navbar";
 
 interface Sticker {
   id: string;
@@ -65,8 +65,7 @@ export default function AppPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
-  const [balance, setBalance] = useState<string | null>(null);
-  const [pool, setPool] = useState<number | null>(null);
+  const [, setBalance] = useState<string | null>(null);
   const [showTopUp, setShowTopUp] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
 
@@ -83,29 +82,6 @@ export default function AppPage() {
     }
     refreshBalanceState();
   }, [router, refreshBalanceState]);
-
-  // World pool poll
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/pool`);
-        const data = await res.json();
-        if (alive) setPool(data.pool);
-      } catch {}
-    };
-    tick();
-    const id = window.setInterval(tick, 30_000);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
-  }, []);
-
-  const handleSignOut = useCallback(() => {
-    clearSession();
-    router.push("/");
-  }, [router]);
 
   const handleFetch = useCallback(async () => {
     if (!url.trim() || loading) return;
@@ -189,31 +165,10 @@ export default function AppPage() {
 
   return (
     <div className="min-h-[100dvh]">
+      <Navbar variant="app" />
       <div className="mx-auto max-w-[1400px] px-4 md:px-10">
-        <header className="flex items-center justify-between py-6">
-          <a href="/" className="font-display text-lg font-bold tracking-tight">
-            Sticker<span className="text-accent">Sync</span>
-          </a>
-          <div className="flex items-center gap-2.5">
-            {pool !== null && (
-              <span className="hidden sm:flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1.5 font-body text-xs font-semibold text-foreground">
-                <Gift size={14} weight="fill" className="text-accent" />
-                World pool: <span className="font-mono">{pool}</span>
-              </span>
-            )}
-            <button
-              onClick={handleSignOut}
-              title="Sign out"
-              className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-line bg-raised px-3.5 py-2 font-body text-xs font-semibold transition-colors hover:border-muted"
-            >
-              <Coins size={14} weight="fill" className="text-accent" />
-              {balance ?? "…"}
-            </button>
-          </div>
-        </header>
-
         <section
-          className="rounded-[2.5rem] border border-line bg-raised p-5 md:p-8"
+          className="mt-8 rounded-[2.5rem] border border-line bg-raised p-5 md:p-8"
           style={{ boxShadow: "var(--shadow-lift)" }}
         >
           <div className="grid gap-4 md:grid-cols-[2fr_1fr_auto] md:items-end">
