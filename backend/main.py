@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from PIL import Image
 from pydantic import BaseModel
@@ -418,6 +418,109 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+import os as _env
+GOOGLE_CLIENT_ID = _env.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = _env.environ.get("GOOGLE_CLIENT_SECRET", "")
+FRONTEND_URL = _env.environ.get("FRONTEND_URL", "")
+BACKEND_URL = _env.environ.get("BACKEND_URL", "")
+
+
+@app.get("/auth/oauth/google/start")
+async def oauth_google_start(ref: Optional[str] = Query(None)):
+    """Kick off Google OAuth: one-time state, redirect to Google consent screen."""
+    import secrets as _s
+    from urllib.parse import urlencode as _ue
+    state = _s.token_urlsafe(32)
+    ref_clean = ref.upper() if (ref and re.match(r"^[A-Za-z0-9]{4,8}$", ref)) else None
+    await db.execute("INSERT INTO oauth_states (state, ref) VALUES ($1, $2)", state, ref_clean)
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": f"{BACKEND_URL}/auth/oauth/google/callback",
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    }
+    return RedirectResponse(url=f"{GOOGLE_AUTH_URL}?{_ue(params)}", status_code=302)
+
+
+@app.get("/auth/oauth/google/callback")
+async def oauth_google_callback(code: Optional[str] = Query(None), state: Optional[str] = Query(None)):
+    """Google redirects here with code+state. Validate, exchange, upsert, redirect home."""
+    import json as _json
+    from urllib.parse import urlencode as _ue
+
+    def err_redirect(code_err: str):
+        back = FRONTEND_URL or "https://frontend-stickersync.vercel.app"
+        return RedirectResponse(url=f"{back}#auth_error={code_err}", status_code=302)
+
+    # 1. validate state (one-time use, 10-min TTL)
+    if not state:
+        return err_redirect("state")
+    row = await db.fetch_one(
+        "DELETE FROM oauth_states WHERE state = $1 "
+        "AND created_at > now() - interval '600 seconds' RETURNING ref",
+        state,
+    )
+    if not row:
+        return err_redirect("state")
+    ref_code = row["ref"] if row else None
+
+    # 2. exchange code for access token
+    if not code:
+        return err_redirect("denied")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as ex:
+            token_resp = await ex.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": f"{BACKEND_URL}/auth/oauth/google/callback",
+                },
+            )
+        token_resp.raise_for_status()
+        access_token = token_resp.json().get("access_token")
+        if not access_token:
+            return err_redirect("exchange")
+    except Exception:
+        return err_redirect("exchange")
+
+    # 3. fetch userinfo (require verified email)
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as ui:
+            info_resp = await ui.get(
+                GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"}
+            )
+        info_resp.raise_for_status()
+        info = info_resp.json()
+        email = info.get("email")
+        email_verified = info.get("email_verified")
+        if not email or email_verified not in (True, "true", "True"):
+            return err_redirect("email")
+    except Exception:
+        return err_redirect("email")
+
+    # 4. upsert user via RPC
+    result = await db.fetch_val("SELECT oauth_login($1, $2)", email, ref_code)
+    data = _json.loads(result) if isinstance(result, str) else result
+    if isinstance(data, dict) and data.get("error"):
+        return err_redirect("email")
+
+    # 5. sign our JWT, redirect to frontend with token in URL fragment
+    token = auth.make_token(str(data["user_id"]))
+    back = FRONTEND_URL or "https://frontend-stickersync.vercel.app"
+    return RedirectResponse(url=f"{back}#token={token}&uid={data['user_id']}", status_code=302)
 
 
 def _gen_ref_code() -> str:

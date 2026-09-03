@@ -16,10 +16,12 @@ import {
   LockSimple,
   UserPlus,
   SignIn,
+  GoogleLogo,
 } from "@phosphor-icons/react";
 import {
   API_BASE,
   getToken,
+  setSession,
   signup as apiSignup,
   login as apiLogin,
   clearSession,
@@ -168,6 +170,35 @@ export default function Home() {
     const ref = new URLSearchParams(window.location.search).get("ref");
     if (ref) window.localStorage.setItem("stickersync_ref", ref);
   }, []);
+
+  // OAuth redirect handler: #token=xxx&uid=yyy or #auth_error=code
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get("token");
+    const uid = params.get("uid");
+    const authErr = params.get("auth_error");
+    if (token && uid) {
+      setSession(token, uid);
+      setSignedIn(true);
+      // clear hash without reload
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      refreshMe();
+      return;
+    }
+    if (authErr) {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      setAuthError(
+        authErr === "denied"
+          ? "Google sign-in was cancelled. Try again or use email."
+          : authErr === "email"
+          ? "We couldn't verify your Google email. Try again or use email."
+          : "The sign-in session expired. Please try again."
+      );
+      setAuthMode("login");
+    }
+  }, [refreshMe]);
 
   const handleAuth = useCallback(
     async (mode: "login" | "signup") => {
@@ -592,6 +623,27 @@ export default function Home() {
                 ? "New accounts get 3 free downloads — no card needed."
                 : "Sign in to keep your credits and downloads."}
             </p>
+
+            {authMode && (
+              <>
+                <a
+                  href={`${API_BASE}/auth/oauth/google/start${
+                    typeof window !== "undefined" && window.localStorage.getItem("stickersync_ref")
+                      ? `?ref=${window.localStorage.getItem("stickersync_ref")}`
+                      : ""
+                  }`}
+                  className="mt-5 flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-full border border-line bg-raised px-5 py-3 font-body text-sm font-semibold text-foreground transition-all hover:border-muted active:translate-y-px active:scale-[0.98]"
+                >
+                  <GoogleLogo size={18} weight="fill" />
+                  {authMode === "signup" ? "Continue with Google" : "Sign in with Google"}
+                </a>
+                <div className="my-4 flex items-center gap-3" aria-hidden>
+                  <span className="h-px flex-1 bg-line" />
+                  <span className="font-body text-xs uppercase tracking-wide text-muted">or</span>
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+              </>
+            )}
 
             <form
               className="mt-5 space-y-3"
