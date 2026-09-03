@@ -67,3 +67,19 @@ export async function login(
   setSession(data.token, data.user_id);
   return { ok: true, user_id: data.user_id };
 }
+
+/** Fetch /me balance; returns display string like "3 free" or "12 credits", or null. */
+export async function refreshBalance(): Promise<string | null> {
+  const t = getToken();
+  if (!t) return null;
+  try {
+    const res = await fetch(`${API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    if (!res.ok) return null;
+    const me = await res.json();
+    return me.free_downloads > 0 ? `${me.free_downloads} free` : `${me.private_credits} credits`;
+  } catch {
+    return null;
+  }
+}

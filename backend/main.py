@@ -647,6 +647,19 @@ async def download_sticker(
     )
 
 
+@app.get("/stats")
+async def stats():
+    """Public read-only stats for the landing page."""
+    library_size = await db.fetch_val("SELECT count(*) FROM library")
+    total_downloads = await db.fetch_val("SELECT count(*) FROM download_log")
+    pool = await db.fetch_val("SELECT pool FROM world_pool WHERE id = 1")
+    return {
+        "library_size": library_size,
+        "total_downloads": total_downloads,
+        "world_pool": pool,
+    }
+
+
 @app.get("/cleanup")
 async def cleanup():
     """Daily sweep endpoint (called by external cron). Removes expired library URLs."""
