@@ -6,7 +6,7 @@ Extract sticker dari komentar video TikTok dan import ke WhatsApp sebagai sticke
 
 | Komponen | URL |
 |---|---|
-| Frontend | https://frontend-stickersync.vercel.app |
+| Frontend | https://stickersync.vercel.app |
 | Backend API | https://stickersync-production.up.railway.app |
 | Database | Supabase Postgres (Supavisor pooler, ap-southeast-1) |
 

@@ -459,7 +459,7 @@ async def oauth_google_callback(code: Optional[str] = Query(None), state: Option
     from urllib.parse import urlencode as _ue
 
     def err_redirect(code_err: str):
-        back = FRONTEND_URL or "https://frontend-stickersync.vercel.app"
+        back = FRONTEND_URL or "https://stickersync.vercel.app"
         return RedirectResponse(url=f"{back}#auth_error={code_err}", status_code=302)
 
     # 1. validate state (one-time use, 10-min TTL)
@@ -519,7 +519,7 @@ async def oauth_google_callback(code: Optional[str] = Query(None), state: Option
 
     # 5. sign our JWT, redirect to frontend with token in URL fragment
     token = auth.make_token(str(data["user_id"]))
-    back = FRONTEND_URL or "https://frontend-stickersync.vercel.app"
+    back = FRONTEND_URL or "https://stickersync.vercel.app"
     return RedirectResponse(url=f"{back}#token={token}&uid={data['user_id']}", status_code=302)
 
 
