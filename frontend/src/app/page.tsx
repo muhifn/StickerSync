@@ -19,6 +19,7 @@ import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
 import { Navbar } from "@/components/Navbar";
 import { CountUp } from "@/components/CountUp";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { TrendingStrip } from "@/components/TrendingStrip";
 import { AuthModal } from "@/components/AuthModal";
 
 interface Stats {
@@ -342,6 +343,9 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        {/* ===== LIVE WATCH — TRENDING (after bento) ===== */}
+        <TrendingStrip />
 
         {/* ===== HOW IT WORKS ===== */}
         <section id="how" className="reveal scroll-mt-20 pb-24 md:pb-28">

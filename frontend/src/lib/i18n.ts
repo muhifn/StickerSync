@@ -69,6 +69,21 @@ export interface Dict {
     by: string;
     grabbed: string;
   };
+  trending: {
+    tag: string;
+    title: string;
+    lead: string;
+    cta: string;
+  };
+  library: {
+    tag: string;
+    title: string;
+    searchPlaceholder: string;
+    sortTrending: string;
+    sortRecent: string;
+    sortDownloads: string;
+    empty: string;
+  };
   howTag: string;
   how: { title: string; steps: HowStep[] };
   vsTag: string;
@@ -209,6 +224,21 @@ export const dict: Record<Locale, Dict> = {
         "No grabs yet. Be the first — scan a video and download a sticker, it shows up here.",
       by: "by",
       grabbed: "grabbed",
+    },
+    trending: {
+      tag: "Live watch",
+      title: "Trending now.\nNo search needed.",
+      lead: "The stickers everyone is hunting right now — most viewed and downloaded in the last 72 hours. Grab them straight from here.",
+      cta: "Get it free",
+    },
+    library: {
+      tag: "The library",
+      title: "Every sticker ever found",
+      searchPlaceholder: "Search comments… e.g. \"true friend\"",
+      sortTrending: "Trending",
+      sortRecent: "Newest",
+      sortDownloads: "Most downloaded",
+      empty: "Nothing matches that search. Try another keyword — or scan a video and add new stickers to the library.",
     },
     howTag: "How it works",
     how: {
@@ -448,6 +478,21 @@ export const dict: Record<Locale, Dict> = {
         "Belum ada yang mengambil. Jadi yang pertama — scan video dan unduh stiker, kamu muncul di sini.",
       by: "oleh",
       grabbed: "diambil",
+    },
+    trending: {
+      tag: "Live watch",
+      title: "Sedang tren.\nTanpa perlu search.",
+      lead: "Stiker yang sedang diburu semua orang — paling banyak dilihat dan diunduh dalam 72 jam terakhir. Ambil langsung dari sini.",
+      cta: "Ambil gratis",
+    },
+    library: {
+      tag: "Library-nya",
+      title: "Semua stiker yang pernah ditemukan",
+      searchPlaceholder: "Cari komentar… mis. \"true friend\"",
+      sortTrending: "Tren",
+      sortRecent: "Terbaru",
+      sortDownloads: "Terbanyak diunduh",
+      empty: "Tidak ada yang cocok dengan pencarian itu. Coba kata lain — atau scan video dan tambahkan stiker baru ke library.",
     },
     howTag: "Cara pakai",
     how: {
