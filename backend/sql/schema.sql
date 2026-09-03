@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
 -- 2. World pool: single row, atomic decrement
 CREATE TABLE IF NOT EXISTS world_pool (
     id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
-    pool INT NOT NULL DEFAULT 100,
+    pool INT NOT NULL DEFAULT 25,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-INSERT INTO world_pool (id, pool) VALUES (1, 100)
+INSERT INTO world_pool (id, pool) VALUES (1, 25)
     ON CONFLICT (id) DO NOTHING;
 
 -- 3. Pool claims: 3/day limit for non-purchasers

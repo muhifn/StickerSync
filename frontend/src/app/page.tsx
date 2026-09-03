@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  Sticker as StickerIcon,
   Check,
   X,
   CursorClick,
@@ -114,6 +113,25 @@ export default function Landing() {
     if (signin === "1" && !getToken()) setAuthMode("login");
   }, []);
 
+  // Scroll reveal (GoClip .r pattern): sections fade+slide in on viewport entry
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    if (!els.length) return;
+    const ob = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            ob.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.08 }
+    );
+    els.forEach((el) => ob.observe(el));
+    return () => ob.disconnect();
+  }, []);
+
   const startCta = useCallback(() => {
     router.push(getToken() ? "/app" : "/?signin=1");
   }, [router]);
@@ -198,34 +216,85 @@ export default function Landing() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-[1200px] px-5 md:px-10">
-        {/* ===== BENTO STATS ===== */}
-        <section className="py-24 md:py-28">
+      <main className="relative z-[1] mx-auto max-w-[1200px] px-5 md:px-10">
+        {/* ===== BENTO STATS (7 cells, GoClip 4×2) ===== */}
+        <section className="reveal py-24 md:py-28">
           <SectionHead tag={t.statsTag} title={t.stats.title} />
-          <div className="segmented grid-cols-2 lg:grid-cols-4">
-            <div className="p-9 md:p-10">
+          <div className="segmented grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {/* WIDE: library count (span 2) */}
+            <div className="flex flex-col justify-center p-9 sm:col-span-2 md:p-10">
               <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
-                <CountUp value={stats?.library_size ?? null} locale={numLocale} />
+                <CountUp value={stats?.library_size ?? null} duration={1600} locale={numLocale} />
               </p>
               <p className="mt-2 text-sm font-bold text-white/85">{t.stats.library}</p>
               <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.librarySub}</p>
             </div>
-            <div className="p-9 md:p-10">
+
+            {/* downloads */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
               <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
-                <CountUp value={stats?.total_downloads ?? null} locale={numLocale} />
+                <CountUp value={stats?.total_downloads ?? null} duration={1600} locale={numLocale} />
               </p>
               <p className="mt-2 text-sm font-bold text-white/85">{t.stats.downloads}</p>
               <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.downloadsSub}</p>
             </div>
-            <div className="p-9 md:p-10">
+
+            {/* world pool */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
               <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
-                <CountUp value={stats?.world_pool ?? null} locale={numLocale} />
+                <CountUp value={stats?.world_pool ?? null} duration={1600} locale={numLocale} />
               </p>
               <p className="mt-2 text-sm font-bold text-white/85">{t.stats.pool}</p>
               <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.poolSub}</p>
             </div>
 
-            {/* mini card: username filter demo (mono) */}
+            {/* QUALITY SCORE — 4 progress bars (GoClip AI Quality Score cell) */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+                </span>
+                <p className="font-body text-[11px] font-bold uppercase tracking-[2px] text-accent">
+                  {t.bento.qualityTag}
+                </p>
+              </div>
+              <div className="mt-4 flex flex-col gap-2.5">
+                {t.bento.qualityRows.map((row) => {
+                  const num = parseInt(row.score, 10);
+                  const bad = num <= 3;
+                  return (
+                    <div key={row.label}>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-xs text-white/50">{row.label}</span>
+                        <span className={`text-xs font-bold ${bad ? "text-[#ff6060]" : "text-accent"}`}>
+                          {row.score}
+                        </span>
+                      </div>
+                      <div className="h-1 rounded-full bg-white/10">
+                        <div
+                          className={`h-full rounded-full ${bad ? "bg-[#ff6060]" : "bg-accent"}`}
+                          style={{ width: `${num * 10}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-4 text-xs text-white/25">{t.bento.qualitySub}</p>
+            </div>
+
+            {/* $0 TO START + badge */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
+              <p className="font-display text-5xl font-black tracking-[-3px]">{t.bento.startTitle}</p>
+              <p className="mt-2 text-sm font-bold text-white/85">{t.bento.startTag}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.bento.startBody}</p>
+              <span className="mt-3 inline-flex w-fit rounded-full bg-accent-soft px-3 py-1 font-body text-[11px] font-bold text-accent">
+                {t.bento.startBadge}
+              </span>
+            </div>
+
+            {/* USERNAME FILTER demo (mono) */}
             <div className="flex flex-col justify-center p-9 md:p-10">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
@@ -245,34 +314,17 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* mini card: $0 to start */}
+            {/* UP IN MINUTES — 3 mini steps */}
             <div className="flex flex-col justify-center p-9 md:p-10">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
-                  <StickerIcon size={15} weight="fill" className="text-accent" />
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft">
+                  <CursorClick size={16} weight="fill" className="text-accent" />
                 </span>
-                <p className="font-body text-[12px] font-bold uppercase tracking-[1.5px] text-accent">
-                  {t.bento.startTag}
-                </p>
-              </div>
-              <p className="mt-4 font-display text-5xl font-black tracking-[-3px]">{t.bento.startTitle}</p>
-              <p className="mt-2 text-[13px] leading-relaxed text-white/40">{t.bento.startBody}</p>
-            </div>
-
-            {/* mini card: 3 quick steps */}
-            <div className="col-span-2 flex flex-col justify-center p-9 md:p-10 lg:col-span-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
-                  <CursorClick size={15} weight="fill" className="text-accent" />
-                </span>
-                <p className="font-body text-[12px] font-bold uppercase tracking-[1.5px] text-accent">
+                <p className="font-body text-[13px] font-bold uppercase tracking-[1px] text-accent">
                   {t.bento.quickTag}
                 </p>
               </div>
-              <p className="mt-4 font-display text-xl font-extrabold tracking-tight">
-                {t.bento.quickTitle}
-              </p>
-              <div className="mt-4 flex flex-col gap-2.5">
+              <div className="mt-5 flex flex-col gap-2.5">
                 {t.bento.quickSteps.map((s, i) => (
                   <div key={s} className="flex flex-col gap-2.5">
                     <div className="flex items-center gap-3">
@@ -292,7 +344,7 @@ export default function Landing() {
         </section>
 
         {/* ===== HOW IT WORKS ===== */}
-        <section id="how" className="scroll-mt-20 pb-24 md:pb-28">
+        <section id="how" className="reveal scroll-mt-20 pb-24 md:pb-28">
           <SectionHead tag={t.howTag} title={t.how.title} />
           <div className="segmented grid-cols-1 md:grid-cols-3">
             {t.how.steps.map((step, i) => {
@@ -319,14 +371,14 @@ export default function Landing() {
         </section>
 
         {/* ===== LIVE TERMINAL (after how, GoClip order) ===== */}
-        <section className="pb-24 md:pb-28">
+        <section className="reveal pb-24 md:pb-28">
           <div className="mx-auto max-w-[820px]">
             <ActivityFeed />
           </div>
         </section>
 
         {/* ===== COMPARISON ===== */}
-        <section className="pb-24 md:pb-28">
+        <section className="reveal pb-24 md:pb-28">
           <SectionHead tag={t.vsTag} title={t.vs.title} />
           <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.vs.lead}</p>
           <div className="segmented mt-12 grid-cols-1 md:grid-cols-2">
@@ -360,27 +412,32 @@ export default function Landing() {
         </section>
 
         {/* ===== PRICING ===== */}
-        <section id="pricing" className="scroll-mt-20 pb-24 md:pb-28">
+        <section id="pricing" className="reveal scroll-mt-20 pb-24 text-center md:pb-28">
           <SectionHead tag={t.pricingTag} title={t.pricing.title} />
-          <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.pricing.lead}</p>
+          <p className="-mt-8 mx-auto max-w-[480px] text-[17px] leading-relaxed text-white/40">
+            {t.pricing.lead}
+          </p>
 
-          {/* founder note banner */}
-          <div className="mt-10 max-w-[720px] rounded-2xl border border-accent-line bg-accent-soft p-5 text-center md:p-6">
-            <p className="font-mono text-[12px] font-medium tracking-wide text-accent-purple">
+          {/* founder pricing pill (GoClip purple pill) */}
+          <div className="mx-auto mt-7 inline-flex items-center gap-2.5 rounded-full border border-[rgba(192,132,252,0.3)] bg-[rgba(192,132,252,0.08)] px-5 py-2.5">
+            <Sparkle size={14} weight="fill" className="text-accent-purple" />
+            <span className="font-mono text-xs font-semibold tracking-wide text-accent-purple">
               {t.pricing.founderNote}
-            </p>
-            <p className="mx-auto mt-2 max-w-[520px] text-[13px] leading-relaxed text-white/40">
-              {t.pricing.founderSub}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-              <span className="rounded-md bg-accent-soft px-2 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent">
-                {t.pricing.codeTag}
-              </span>
-              <span className="text-[13px] text-white/50">{t.pricing.codeHint}</span>
-            </div>
+            </span>
+          </div>
+          <p className="mx-auto mt-3.5 max-w-[520px] text-[13px] leading-[1.6] text-white/40">
+            {t.pricing.founderSub}
+          </p>
+
+          {/* referral code hint pill (GoClip creator-code) */}
+          <div className="mx-auto mt-3.5 inline-flex items-center gap-2.5 rounded-full border border-accent-line bg-accent-soft px-4.5 py-2 font-mono text-xs font-semibold text-accent">
+            <span className="rounded-md bg-[rgba(0,255,136,0.18)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[1.5px]">
+              {t.pricing.codeTag}
+            </span>
+            {t.pricing.codeHint}
           </div>
 
-          <div className="segmented mt-12 grid-cols-1 md:grid-cols-3">
+          <div className="segmented mt-12 grid-cols-1 text-left md:grid-cols-3">
             {/* Free */}
             <div className="flex flex-col p-9 md:p-10">
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
@@ -478,7 +535,7 @@ export default function Landing() {
         </section>
 
         {/* ===== SAFETY ===== */}
-        <section id="safety" className="scroll-mt-20 pb-24 md:pb-28">
+        <section id="safety" className="reveal scroll-mt-20 pb-24 md:pb-28">
           <SectionHead tag={t.safetyTag} title={t.safety.title} />
           <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.safety.lead}</p>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -502,7 +559,7 @@ export default function Landing() {
         </section>
 
         {/* ===== FAQ ===== */}
-        <section id="faq" className="scroll-mt-20 pb-24 md:pb-28">
+        <section id="faq" className="reveal scroll-mt-20 pb-24 md:pb-28">
           <SectionHead tag={t.faqTag} title={t.faq.title} />
           <div className="mx-auto max-w-[720px]">
             {t.faq.items.map((item) => (
@@ -519,7 +576,7 @@ export default function Landing() {
       </main>
 
       {/* ===== FINAL CTA — big green box (GoClip pattern) ===== */}
-      <div className="px-5 pb-8 md:px-10">
+      <div className="reveal relative z-[1] px-5 pb-8 md:px-10">
         <section className="relative overflow-hidden rounded-[28px] bg-accent">
           <span
             className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-display text-[clamp(80px,18vw,240px)] font-black tracking-[-0.05em] text-black/5"
@@ -546,7 +603,7 @@ export default function Landing() {
       </div>
 
       {/* ===== FOOTER ===== */}
-      <footer className="border-t border-white/5">
+      <footer className="relative z-[1] border-t border-white/5">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 px-5 py-8 md:px-10">
           <p className="font-display text-lg font-black tracking-tight">
             Sticker<em className="not-italic text-accent">Sync</em>

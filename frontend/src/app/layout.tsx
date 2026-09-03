@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { Cursor } from "@/components/Cursor";
+import { GridBackground } from "@/components/GridBackground";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${dmMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <GridBackground />
         <Cursor />
         {children}
       </body>

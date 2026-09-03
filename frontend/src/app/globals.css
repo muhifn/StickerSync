@@ -83,10 +83,29 @@ body {
   overflow: hidden;
 }
 
-.segmented > * { background: var(--bg-raised); }
+.segmented > * {
+  background: var(--bg-raised);
+  transition: background 0.3s ease;
+}
+
+.segmented > *:hover {
+  background: #101010;
+}
 
 @media (max-width: 767px) {
   .segmented { grid-template-columns: 1fr !important; }
+}
+
+/* Scroll reveal (GoClip .r pattern) */
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* --- Motion --- */
@@ -220,4 +239,5 @@ summary:focus-visible {
   .stagger-item { opacity: 1; }
   .feed-line { opacity: 1; }
   .glitch-loop { animation: none; }
+  .reveal { opacity: 1; transform: none; }
 }

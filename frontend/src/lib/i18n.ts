@@ -52,9 +52,16 @@ export interface Dict {
     startTag: string;
     startTitle: string;
     startBody: string;
+    startBadge: string;
     quickTag: string;
     quickTitle: string;
     quickSteps: string[];
+    qualityTag: string;
+    qualityTitle: string;
+    qualityRows: { label: string; score: string }[];
+    qualitySub: string;
+    wideLabel: string;
+    wideSub: string;
   };
   feed: {
     title: string;
@@ -176,6 +183,7 @@ export const dict: Record<Locale, Dict> = {
       startTag: "To get started",
       startTitle: "$0",
       startBody: "Free tier included. Try it on real videos before you spend a cent.",
+      startBadge: "3 free downloads on signup",
       quickTag: "Up in minutes",
       quickTitle: "Three taps and done",
       quickSteps: [
@@ -183,6 +191,17 @@ export const dict: Record<Locale, Dict> = {
         "Note the sticker's username",
         "Import to WhatsApp",
       ],
+      qualityTag: "Sticker quality score",
+      qualityTitle: "What lands in your tray",
+      qualityRows: [
+        { label: "Animation intact", score: "9/10" },
+        { label: "512×512 WhatsApp spec", score: "9/10" },
+        { label: "Original WebP file", score: "8/10" },
+        { label: "Screenshot quality", score: "2/10" },
+      ],
+      qualitySub: "Original files, never screenshots. Only the best make it to your tray.",
+      wideLabel: "stickers collected",
+      wideSub: "Every sticker ever grabbed by hunters — the shared library.",
     },
     feed: {
       title: "StickerSync — Live Activity Feed",
@@ -403,6 +422,7 @@ export const dict: Record<Locale, Dict> = {
       startTag: "Buat mulai",
       startTitle: "Rp 0",
       startBody: "Free tier sudah termasuk. Coba di video asli sebelum keluar uang sepeser pun.",
+      startBadge: "3 download gratis saat daftar",
       quickTag: "Selesai dalam hitungan menit",
       quickTitle: "Tiga tap, beres",
       quickSteps: [
@@ -410,6 +430,17 @@ export const dict: Record<Locale, Dict> = {
         "Catat username stikernya",
         "Import ke WhatsApp",
       ],
+      qualityTag: "Skor kualitas stiker",
+      qualityTitle: "Yang masuk ke tray kamu",
+      qualityRows: [
+        { label: "Animasi utuh", score: "9/10" },
+        { label: "Spec 512×512 WhatsApp", score: "9/10" },
+        { label: "File WebP original", score: "8/10" },
+        { label: "Kualitas screenshot", score: "2/10" },
+      ],
+      qualitySub: "File original, bukan screenshot. Hanya yang terbaik masuk tray kamu.",
+      wideLabel: "stiker terkumpul",
+      wideSub: "Semua stiker yang pernah diambil para pemburu — library bersama.",
     },
     feed: {
       title: "StickerSync — Live Activity Feed",

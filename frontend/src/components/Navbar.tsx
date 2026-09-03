@@ -199,13 +199,6 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
                     </div>
                     <button
                       role="menuitem"
-                      onClick={goHome}
-                      className="flex w-full items-center gap-2.5 px-4 py-3 font-body text-[13px] font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white"
-                    >
-                      <HouseSimple size={15} /> {t.nav.backHome}
-                    </button>
-                    <button
-                      role="menuitem"
                       onClick={handleSignOut}
                       className="flex w-full items-center gap-2.5 px-4 py-3 font-body text-[13px] font-medium text-error transition-colors hover:bg-error-soft"
                     >
