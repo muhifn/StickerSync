@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { DownloadSimple, Sparkle } from "@phosphor-icons/react";
+import { DownloadSimple } from "@phosphor-icons/react";
 import { API_BASE } from "@/lib/auth";
 import { dict, detectLocale, type Locale } from "@/lib/i18n";
 
@@ -39,49 +39,35 @@ export const ActivityFeed = memo(function ActivityFeed() {
 
   return (
     <div
-      className="overflow-hidden rounded-[2rem] border border-line bg-raised"
-      style={{ boxShadow: "var(--shadow-lift)" }}
+      className="overflow-hidden rounded-[20px] border border-accent-line bg-[#080810]"
       aria-label="Live activity"
     >
-      <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
-        <span className="relative flex h-2 w-2" aria-hidden>
-          <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-        </span>
-        <p className="font-body text-xs font-semibold uppercase tracking-wide text-muted">
-          {t.title}
-        </p>
+      {/* mac title bar */}
+      <div className="flex items-center gap-2 border-b border-white/5 bg-[#0f0f18] px-5 py-3.5">
+        <span className="h-3 w-3 rounded-full bg-[#ff5f57]" aria-hidden />
+        <span className="h-3 w-3 rounded-full bg-[#febc2e]" aria-hidden />
+        <span className="h-3 w-3 rounded-full bg-[#28c840]" aria-hidden />
+        <span className="ml-3 font-mono text-xs text-white/40">{t.title}</span>
       </div>
-      <div className="divide-y divide-border">
+
+      <div className="px-6 py-6 font-mono text-[13px] leading-[2.1] md:px-8">
         {events === null && (
-          <div className="space-y-3 p-5" aria-hidden>
-            {[0, 1, 2].map((i) => (
+          <div className="space-y-2" aria-hidden>
+            {[0, 1, 2, 3].map((i) => (
               <div key={i} className="skeleton h-4 w-4/5 rounded-full" />
             ))}
           </div>
         )}
         {events !== null && events.length === 0 && (
-          <div className="flex items-center gap-3 p-6">
-            <Sparkle size={22} weight="fill" className="shrink-0 text-accent" />
-            <p className="font-body text-sm leading-relaxed text-muted">{t.empty}</p>
-          </div>
+          <p className="text-white/40">{t.empty}</p>
         )}
         {events !== null &&
-          events.map((e, i) => (
-            <p
-              key={`${e.author_uid}-${i}`}
-              className="stagger-item flex items-baseline gap-2 px-5 py-3 font-mono text-xs leading-relaxed"
-              style={{ ["--index" as string]: i }}
-            >
-              <DownloadSimple size={13} weight="bold" className="mt-0.5 shrink-0 self-start text-accent" />
-              <span className="min-w-0 flex-1">
-                <span className="text-foreground">
-                  {e.comment_text ? `“${e.comment_text}”` : "a sticker"}
-                </span>{" "}
-                <span className="text-muted">
-                  {t.by} @{e.author_uid || "unknown"}
-                </span>{" "}
-                <span className="text-muted/70">— {t.grabbed} {e.ago}</span>
+          events.slice(0, 10).map((e, i) => (
+            <p key={`${e.author_uid}-${i}`} className="feed-line flex gap-3" style={{ ["--index" as string]: i }}>
+              <span className="text-accent" aria-hidden>●</span>
+              <span className="min-w-0 flex-1 text-white/60">
+                <span className="text-white">&ldquo;{e.comment_text || "a sticker"}&rdquo;</span>{" "}
+                {t.by} <span className="text-accent">@{e.author_uid || "unknown"}</span> — {t.grabbed} {e.ago}
               </span>
             </p>
           ))}

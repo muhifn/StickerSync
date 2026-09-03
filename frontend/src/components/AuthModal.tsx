@@ -51,12 +51,11 @@ export function AuthModal({ mode, onModeChange, onClose, onSuccess }: AuthModalP
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-[2rem] border border-line bg-background p-7"
-        style={{ boxShadow: "var(--shadow-sticker)" }}
+        className="w-full max-w-sm rounded-[24px] border border-white/10 bg-raised p-7 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.9)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">

@@ -10,9 +10,10 @@ import {
   CursorClick,
   MagnifyingGlass,
   WhatsappLogo,
-  ShieldCheck,
   LockSimple,
+  ShieldCheck,
   Copyright,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken, setSession } from "@/lib/auth";
 import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
@@ -27,30 +28,17 @@ interface Stats {
   world_pool: number;
 }
 
-const FloatSticker = memo(function FloatSticker() {
-  return (
-    <div className="float-loop relative mx-auto w-48 sm:w-64 md:w-full max-w-[340px] aspect-square">
-      <div
-        className="absolute inset-0 rounded-[2.5rem] rotate-[-4deg] border border-line bg-raised"
-        style={{ boxShadow: "var(--shadow-sticker)" }}
-        aria-hidden
-      />
-      <div
-        className="absolute inset-0 flex items-center justify-center rounded-[2.5rem] rotate-[2.5deg] border border-line bg-background"
-        style={{ boxShadow: "var(--shadow-lift)" }}
-        aria-hidden
-      >
-        <StickerIcon size="45%" weight="fill" className="text-accent/40" aria-label="Sticker preview" />
-      </div>
-      <span className="absolute -bottom-3 -left-3 rounded-full bg-accent px-3.5 py-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-accent-fg">
-        Animated
-      </span>
-    </div>
-  );
-});
-
 const stepIcons = [CursorClick, MagnifyingGlass, WhatsappLogo];
 const safetyIcons = [LockSimple, ShieldCheck, Copyright];
+
+const SectionHead = memo(function SectionHead({ tag, title }: { tag: string; title: string }) {
+  return (
+    <>
+      <p className="section-tag">{tag}</p>
+      <h2 className="section-h whitespace-pre-line">{title}</h2>
+    </>
+  );
+});
 
 export default function Landing() {
   const router = useRouter();
@@ -136,184 +124,233 @@ export default function Landing() {
     <div className="min-h-[100dvh]">
       <Navbar variant="landing" />
 
-      {/* ===== HERO ===== */}
-      <div className="mx-auto max-w-[1400px] px-4 md:px-10">
-        <section className="grid items-center gap-10 pb-16 pt-10 md:grid-cols-[3fr_2fr] md:gap-16 md:pb-24 md:pt-16">
-          <div className="stagger-item" style={{ ["--index" as string]: 0 }}>
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-raised px-3.5 py-1.5 font-body text-xs font-semibold text-muted">
-              <span className="relative flex h-2 w-2" aria-hidden>
-                <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+      {/* ===== HERO (centered, GoClip-style) ===== */}
+      <section className="relative flex min-h-[92dvh] flex-col items-center justify-center px-5 pb-20 pt-28 text-center">
+        <p className="inline-flex items-center gap-2 rounded-full font-body text-[11px] font-bold uppercase tracking-[2.5px] text-accent">
+          <span className="relative flex h-2 w-2" aria-hidden>
+            <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+          </span>
+          {t.hero.eyebrow}
+        </p>
+        <h1
+          className="mt-9 font-display font-black leading-[0.95] tracking-[-0.045em]"
+          style={{ fontSize: "clamp(56px, 9vw, 120px)" }}
+        >
+          <span className="glitch-loop block">{t.hero.title1}</span>
+          <span className="block text-accent">{t.hero.title2}</span>
+          <span className="block">{t.hero.title3}</span>
+        </h1>
+        <p className="mt-8 max-w-[560px] font-body text-base leading-[1.65] text-white/50 md:text-lg">
+          {t.hero.subtitle}
+        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <button
+            onClick={startCta}
+            className="flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-10 py-4 font-body text-base font-extrabold tracking-tight text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+          >
+            {t.hero.cta} <ArrowRight size={18} weight="bold" />
+          </button>
+          <a
+            href="#how"
+            className="flex min-h-[44px] items-center rounded-full border border-white/15 px-8 py-4 font-body text-[15px] font-semibold text-white/50 transition-colors hover:border-white/30 hover:text-white"
+          >
+            {t.hero.ctaSecondary}
+          </a>
+        </div>
+        {/* trust row — one line, dot-separated (GoClip pattern) */}
+        <ul className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          {t.hero.checks.map((c, i) => (
+            <li key={c} className="flex items-center gap-8">
+              <span className="flex items-center gap-2 font-body text-[13px] font-medium text-white/35">
+                <Check size={14} weight="bold" className="text-accent" /> {c}
               </span>
-              {t.hero.eyebrow}
-            </p>
-            <h1 className="mt-5 font-display text-5xl font-bold leading-[1.02] tracking-tighter text-foreground md:text-7xl">
-              {t.hero.title1}
-              <br />
-              {t.hero.title2}
-              <br />
-              <span className="text-accent">{t.hero.title3}</span>
-            </h1>
-            <p className="mt-6 max-w-[52ch] font-body text-base leading-relaxed text-muted md:text-lg">
-              {t.hero.subtitle}
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button
-                onClick={startCta}
-                className="flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-6 py-3 font-body text-base font-semibold text-accent-fg transition-transform active:translate-y-px active:scale-[0.98]"
-              >
-                {t.hero.cta}
-                <ArrowRight size={18} weight="bold" />
-              </button>
-              <a
-                href="#how"
-                className="flex min-h-[44px] items-center rounded-full border border-line bg-raised px-6 py-3 font-body text-base font-semibold text-foreground transition-colors hover:border-muted"
-              >
-                {t.hero.ctaSecondary}
-              </a>
-            </div>
-            <ul className="mt-8 grid max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-              {t.hero.checks.map((c) => (
-                <li key={c} className="flex items-center gap-2 font-body text-sm text-muted">
-                  <Check size={15} weight="bold" className="shrink-0 text-accent" />
-                  {c}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="hidden md:block stagger-item" style={{ ["--index" as string]: 2 }}>
-            <FloatSticker />
-          </div>
-        </section>
-      </div>
+              {i < t.hero.checks.length - 1 && (
+                <span className="hidden h-1 w-1 rounded-full bg-white/15 sm:block" aria-hidden />
+              )}
+            </li>
+          ))}
+        </ul>
+        {/* info banner */}
+        <div className="mt-8 flex max-w-[560px] flex-wrap items-center justify-center gap-x-2 rounded-xl border border-accent-line bg-accent-soft px-5 py-3 text-center font-body text-[13px] text-white/55">
+          {t.hero.note}{" "}
+          <a href="#safety" className="font-semibold text-accent transition-opacity hover:opacity-80">
+            {t.hero.noteLink}
+          </a>
+        </div>
+      </section>
 
       {/* ===== MARQUEE ===== */}
-      <div
-        className="overflow-hidden border-y border-line bg-raised py-4"
-        aria-hidden
-      >
-        <style jsx>{`
-          @keyframes marquee-scroll {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-          }
-          .marquee-track {
-            display: flex;
-            width: max-content;
-            animation: marquee-scroll 32s linear infinite;
-          }
-        `}</style>
-        <div className="marquee-track">
+      <div className="overflow-hidden border-y border-white/5 bg-raised py-3.5" aria-hidden>
+        <div
+          className="flex w-max gap-12 whitespace-nowrap"
+          style={{ animation: "marq 22s linear infinite" }}
+        >
           {[...t.marquee, ...t.marquee].map((m, i) => (
             <span
               key={i}
-              className="flex items-center gap-2 whitespace-nowrap px-6 font-body text-sm font-medium text-muted"
+              className="flex items-center gap-3 font-body text-xs font-bold uppercase tracking-[2px] text-white/30"
             >
-              <StickerIcon size={14} weight="fill" className="text-accent" />
+              <Sparkle size={12} weight="fill" className="text-accent" />
               {m}
             </span>
           ))}
         </div>
       </div>
 
-      {/* ===== STATS + ACTIVITY FEED ===== */}
-      <div className="mx-auto max-w-[1400px] px-4 md:px-10">
-        <section className="grid gap-10 py-14 md:grid-cols-[3fr_2fr] md:gap-16 md:py-24">
-          <div>
-            <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-              {t.stats.title}
-            </h2>
-            <dl className="mt-8 grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-              <div className="py-6 sm:px-6 sm:first:pl-0 sm:last:pr-0">
-                <dt className="font-body text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t.stats.library}
-                </dt>
-                <dd className="mt-2 font-display text-4xl font-bold tabular-nums md:text-5xl">
-                  <CountUp value={stats?.library_size ?? null} locale={numLocale} />
-                </dd>
+      <main className="mx-auto max-w-[1200px] px-5 md:px-10">
+        {/* ===== BENTO STATS ===== */}
+        <section className="py-24 md:py-28">
+          <SectionHead tag={t.statsTag} title={t.stats.title} />
+          <div className="segmented grid-cols-2 lg:grid-cols-4">
+            <div className="p-9 md:p-10">
+              <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
+                <CountUp value={stats?.library_size ?? null} locale={numLocale} />
+              </p>
+              <p className="mt-2 text-sm font-bold text-white/85">{t.stats.library}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.librarySub}</p>
+            </div>
+            <div className="p-9 md:p-10">
+              <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
+                <CountUp value={stats?.total_downloads ?? null} locale={numLocale} />
+              </p>
+              <p className="mt-2 text-sm font-bold text-white/85">{t.stats.downloads}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.downloadsSub}</p>
+            </div>
+            <div className="p-9 md:p-10">
+              <p className="font-display text-6xl font-black tracking-[-3px] text-accent md:text-[64px]">
+                <CountUp value={stats?.world_pool ?? null} locale={numLocale} />
+              </p>
+              <p className="mt-2 text-sm font-bold text-white/85">{t.stats.pool}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.poolSub}</p>
+            </div>
+
+            {/* mini card: username filter demo (mono) */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
+                  <MagnifyingGlass size={15} weight="bold" className="text-accent" />
+                </span>
+                <p className="font-body text-[12px] font-bold uppercase tracking-[1.5px] text-accent">
+                  {t.bento.filterTag}
+                </p>
               </div>
-              <div className="py-6 sm:px-6 sm:last:pr-0">
-                <dt className="font-body text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t.stats.downloads}
-                </dt>
-                <dd className="mt-2 font-display text-4xl font-bold tabular-nums md:text-5xl">
-                  <CountUp value={stats?.total_downloads ?? null} locale={numLocale} />
-                </dd>
+              <p className="mt-4 font-display text-xl font-extrabold tracking-tight">
+                {t.bento.filterTitle}
+              </p>
+              <p className="mt-3 rounded-lg border border-white/10 bg-background p-3 font-mono text-xs text-white/60">
+                {t.bento.filterLine1}
+                <br />
+                <span className="text-accent">{t.bento.filterLine2}</span>
+              </p>
+            </div>
+
+            {/* mini card: $0 to start */}
+            <div className="flex flex-col justify-center p-9 md:p-10">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
+                  <StickerIcon size={15} weight="fill" className="text-accent" />
+                </span>
+                <p className="font-body text-[12px] font-bold uppercase tracking-[1.5px] text-accent">
+                  {t.bento.startTag}
+                </p>
               </div>
-              <div className="py-6 sm:px-6 sm:last:pr-0">
-                <dt className="font-body text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t.stats.pool}
-                </dt>
-                <dd className="mt-2 font-display text-4xl font-bold tabular-nums md:text-5xl">
-                  <CountUp value={stats?.world_pool ?? null} locale={numLocale} />
-                </dd>
+              <p className="mt-4 font-display text-5xl font-black tracking-[-3px]">{t.bento.startTitle}</p>
+              <p className="mt-2 text-[13px] leading-relaxed text-white/40">{t.bento.startBody}</p>
+            </div>
+
+            {/* mini card: 3 quick steps */}
+            <div className="col-span-2 flex flex-col justify-center p-9 md:p-10 lg:col-span-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-soft">
+                  <CursorClick size={15} weight="fill" className="text-accent" />
+                </span>
+                <p className="font-body text-[12px] font-bold uppercase tracking-[1.5px] text-accent">
+                  {t.bento.quickTag}
+                </p>
               </div>
-            </dl>
+              <p className="mt-4 font-display text-xl font-extrabold tracking-tight">
+                {t.bento.quickTitle}
+              </p>
+              <div className="mt-4 flex flex-col gap-2.5">
+                {t.bento.quickSteps.map((s, i) => (
+                  <div key={s} className="flex flex-col gap-2.5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent font-mono text-[11px] font-bold text-accent-fg">
+                        {i + 1}
+                      </span>
+                      <p className="text-[13px] text-white/60">{s}</p>
+                    </div>
+                    {i < t.bento.quickSteps.length - 1 && (
+                      <span className="ml-3 h-3 w-px bg-white/10" aria-hidden />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <ActivityFeed />
         </section>
 
         {/* ===== HOW IT WORKS ===== */}
-        <section id="how" className="scroll-mt-20 border-t border-line py-14 md:py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-            {t.how.title}
-          </h2>
-          <div className="mt-8 grid max-w-[65ch] divide-y divide-border">
+        <section id="how" className="scroll-mt-20 pb-24 md:pb-28">
+          <SectionHead tag={t.howTag} title={t.how.title} />
+          <div className="segmented grid-cols-1 md:grid-cols-3">
             {t.how.steps.map((step, i) => {
               const Icon = stepIcons[i];
               return (
-                <div key={i} className="flex gap-4 py-6 first:pt-0 last:pb-0 md:gap-6">
-                  <span className="font-display text-lg font-bold text-accent">
+                <div key={i} className="group relative overflow-hidden p-12 transition-colors md:p-14">
+                  <span
+                    className="pointer-events-none absolute right-6 top-4 font-display text-[100px] font-black leading-none tracking-[-5px] text-accent opacity-[0.06] transition-opacity group-hover:opacity-[0.12]"
+                    aria-hidden
+                  >
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <div>
-                    <p className="flex items-center gap-2 font-body text-base font-semibold text-foreground">
-                      <Icon size={18} weight="fill" className="shrink-0 text-accent" />
-                      {step.lead}
-                    </p>
-                    <p className="mt-1.5 max-w-[60ch] font-body text-sm leading-relaxed text-muted md:text-base">
-                      {step.body}
-                    </p>
-                  </div>
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft transition-colors group-hover:bg-[rgba(0,255,136,0.18)]">
+                    <Icon size={26} weight="fill" className="text-accent" />
+                  </span>
+                  <p className="mt-7 font-display text-2xl font-extrabold tracking-tight">
+                    {step.lead}
+                  </p>
+                  <p className="mt-3 text-[15px] leading-[1.7] text-white/45">{step.body}</p>
                 </div>
               );
             })}
           </div>
         </section>
 
+        {/* ===== LIVE TERMINAL (after how, GoClip order) ===== */}
+        <section className="pb-24 md:pb-28">
+          <div className="mx-auto max-w-[820px]">
+            <ActivityFeed />
+          </div>
+        </section>
+
         {/* ===== COMPARISON ===== */}
-        <section className="border-t border-line py-14 md:py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-            {t.vs.title}
-          </h2>
-          <p className="mt-3 max-w-[52ch] font-body text-base leading-relaxed text-muted">
-            {t.vs.lead}
-          </p>
-          <div className="mt-8 grid max-w-3xl gap-4 md:grid-cols-2">
-            <div
-              className="rounded-[2rem] border border-accent/40 bg-accent-soft/50 p-6 md:p-7"
-              style={{ boxShadow: "var(--shadow-lift)" }}
-            >
-              <p className="font-display text-lg font-bold tracking-tight text-foreground">
+        <section className="pb-24 md:pb-28">
+          <SectionHead tag={t.vsTag} title={t.vs.title} />
+          <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.vs.lead}</p>
+          <div className="segmented mt-12 grid-cols-1 md:grid-cols-2">
+            <div className="p-10">
+              <span className="inline-flex rounded-full bg-accent-soft px-3 py-1 font-body text-[10px] font-bold uppercase tracking-[2px] text-accent">
                 {t.vs.us}
-              </p>
-              <ul className="mt-4 space-y-3">
+              </span>
+              <ul className="mt-7 space-y-4">
                 {t.vs.usItems.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 font-body text-sm text-foreground">
-                    <Check size={16} weight="bold" className="mt-0.5 shrink-0 text-accent" />
+                  <li key={item} className="flex items-start gap-3 text-[15px] text-white/85">
+                    <Check size={17} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="rounded-[2rem] border border-line bg-raised p-6 md:p-7">
-              <p className="font-display text-lg font-bold tracking-tight text-muted">
+            <div className="p-10">
+              <span className="inline-flex rounded-full bg-white/5 px-3 py-1 font-body text-[10px] font-bold uppercase tracking-[2px] text-white/40">
                 {t.vs.them}
-              </p>
-              <ul className="mt-4 space-y-3">
+              </span>
+              <ul className="mt-7 space-y-4">
                 {t.vs.themItems.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 font-body text-sm text-muted">
-                    <X size={16} weight="bold" className="mt-0.5 shrink-0 text-muted/60" />
+                  <li key={item} className="flex items-start gap-3 text-[15px] text-white/40">
+                    <X size={17} weight="bold" className="mt-0.5 shrink-0 text-white/25" />
                     {item}
                   </li>
                 ))}
@@ -323,29 +360,44 @@ export default function Landing() {
         </section>
 
         {/* ===== PRICING ===== */}
-        <section id="pricing" className="scroll-mt-20 border-t border-line py-14 md:py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-            {t.pricing.title}
-          </h2>
-          <p className="mt-3 max-w-[52ch] font-body text-base leading-relaxed text-muted">
-            {t.pricing.lead}
-          </p>
-          <div className="mt-8 grid max-w-4xl gap-4 md:grid-cols-3">
+        <section id="pricing" className="scroll-mt-20 pb-24 md:pb-28">
+          <SectionHead tag={t.pricingTag} title={t.pricing.title} />
+          <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.pricing.lead}</p>
+
+          {/* founder note banner */}
+          <div className="mt-10 max-w-[720px] rounded-2xl border border-accent-line bg-accent-soft p-5 text-center md:p-6">
+            <p className="font-mono text-[12px] font-medium tracking-wide text-accent-purple">
+              {t.pricing.founderNote}
+            </p>
+            <p className="mx-auto mt-2 max-w-[520px] text-[13px] leading-relaxed text-white/40">
+              {t.pricing.founderSub}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+              <span className="rounded-md bg-accent-soft px-2 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent">
+                {t.pricing.codeTag}
+              </span>
+              <span className="text-[13px] text-white/50">{t.pricing.codeHint}</span>
+            </div>
+          </div>
+
+          <div className="segmented mt-12 grid-cols-1 md:grid-cols-3">
             {/* Free */}
-            <div
-              className="flex flex-col rounded-[2rem] border border-line bg-raised p-6"
-              style={{ boxShadow: "var(--shadow-lift)" }}
-            >
-              <p className="font-display text-lg font-bold tracking-tight">{t.pricing.free.name}</p>
-              <p className="mt-2 font-display text-4xl font-bold tracking-tighter">
-                {t.pricing.free.price}
+            <div className="flex flex-col p-9 md:p-10">
+              <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
+                {t.pricing.free.name}
               </p>
-              <p className="mt-2 font-body text-sm leading-relaxed text-muted">
+              <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
+                {t.pricing.free.price}
+                {t.pricing.free.priceUnit && (
+                  <span className="font-body text-base font-medium text-white/40">{t.pricing.free.priceUnit}</span>
+                )}
+              </p>
+              <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
                 {t.pricing.free.desc}
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5">
+              <ul className="mt-7 flex-1 space-y-3">
                 {t.pricing.free.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2 font-body text-sm text-foreground">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
                     <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
                   </li>
@@ -353,30 +405,29 @@ export default function Landing() {
               </ul>
               <button
                 onClick={startCta}
-                className="mt-6 flex min-h-[44px] items-center justify-center rounded-full bg-accent px-5 py-3 font-body text-sm font-semibold text-accent-fg transition-transform active:translate-y-px active:scale-[0.98]"
+                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
               >
                 {t.pricing.free.cta}
               </button>
             </div>
 
             {/* Starter — soon */}
-            <div
-              className="relative flex flex-col rounded-[2rem] border border-line bg-raised p-6"
-              style={{ boxShadow: "var(--shadow-lift)" }}
-            >
-              <span className="absolute right-5 top-5 rounded-full bg-warn-soft px-2.5 py-1 font-body text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
+            <div className="relative flex flex-col p-9 md:p-10">
+              <span className="absolute right-5 top-5 rounded-md bg-warn-soft px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">
                 {t.pricing.soon}
               </span>
-              <p className="font-display text-lg font-bold tracking-tight">{t.pricing.starter.name}</p>
-              <p className="mt-2 font-display text-4xl font-bold tracking-tighter">
+              <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
+                {t.pricing.starter.name}
+              </p>
+              <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
                 {t.pricing.starter.price}
               </p>
-              <p className="mt-2 font-body text-sm leading-relaxed text-muted">
+              <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
                 {t.pricing.starter.desc}
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5">
+              <ul className="mt-7 flex-1 space-y-3">
                 {t.pricing.starter.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2 font-body text-sm text-foreground">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
                     <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
                   </li>
@@ -384,33 +435,32 @@ export default function Landing() {
               </ul>
               <button
                 disabled
-                className="mt-6 flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-full border border-line bg-background px-5 py-3 font-body text-sm font-semibold text-muted opacity-60"
+                className="mt-9 block w-full cursor-not-allowed rounded-full border border-white/10 bg-background px-5 py-3.5 font-body text-[15px] font-extrabold text-white/30"
               >
                 {t.pricing.starter.cta}
               </button>
             </div>
 
-            {/* Bundle — soon */}
-            <div
-              className="relative flex flex-col rounded-[2rem] border border-accent/50 bg-accent-soft/40 p-6"
-              style={{ boxShadow: "var(--shadow-sticker)" }}
-            >
-              <span className="absolute right-5 top-5 rounded-full bg-accent px-2.5 py-1 font-body text-[10px] font-semibold uppercase tracking-wide text-accent-fg">
+            {/* Bundle — soon, popular */}
+            <div className="relative flex flex-col bg-[#07120c] p-9 ring-1 ring-inset ring-accent/25 md:p-10">
+              <span className="absolute right-5 top-5 rounded-md bg-accent px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent-fg">
                 {t.pricing.popular}
               </span>
-              <span className="absolute right-5 top-10 mt-4 rounded-full bg-warn-soft px-2.5 py-1 font-body text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
+              <span className="absolute right-5 top-11 mt-3 rounded-md bg-warn-soft px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">
                 {t.pricing.soon}
               </span>
-              <p className="font-display text-lg font-bold tracking-tight">{t.pricing.bundle.name}</p>
-              <p className="mt-2 font-display text-4xl font-bold tracking-tighter">
+              <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
+                {t.pricing.bundle.name}
+              </p>
+              <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
                 {t.pricing.bundle.price}
               </p>
-              <p className="mt-2 font-body text-sm leading-relaxed text-muted">
+              <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
                 {t.pricing.bundle.desc}
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5">
+              <ul className="mt-7 flex-1 space-y-3">
                 {t.pricing.bundle.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2 font-body text-sm text-foreground">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
                     <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
                   </li>
@@ -418,33 +468,33 @@ export default function Landing() {
               </ul>
               <button
                 disabled
-                className="mt-6 flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-full border border-line bg-background px-5 py-3 font-body text-sm font-semibold text-muted opacity-60"
+                className="mt-9 block w-full cursor-not-allowed rounded-full border border-white/10 bg-background px-5 py-3.5 font-body text-[15px] font-extrabold text-white/30"
               >
                 {t.pricing.bundle.cta}
               </button>
             </div>
           </div>
-          <p className="mt-6 font-body text-sm text-muted">{t.pricing.note}</p>
+          <p className="mt-6 text-center text-[13px] text-white/40">{t.pricing.note}</p>
         </section>
 
         {/* ===== SAFETY ===== */}
-        <section className="border-t border-line py-14 md:py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-            {t.safety.title}
-          </h2>
-          <p className="mt-3 max-w-[52ch] font-body text-base leading-relaxed text-muted">
-            {t.safety.lead}
-          </p>
-          <div className="mt-8 grid max-w-4xl gap-4 md:grid-cols-3">
+        <section id="safety" className="scroll-mt-20 pb-24 md:pb-28">
+          <SectionHead tag={t.safetyTag} title={t.safety.title} />
+          <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.safety.lead}</p>
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
             {t.safety.items.map((item, i) => {
               const Icon = safetyIcons[i];
               return (
-                <div key={item.title} className="rounded-[2rem] border border-line bg-raised p-6">
-                  <Icon size={26} weight="fill" className="text-accent" />
-                  <p className="mt-3 font-body text-sm font-semibold text-foreground">
-                    {item.title}
-                  </p>
-                  <p className="mt-2 font-body text-sm leading-relaxed text-muted">{item.body}</p>
+                <div
+                  key={item.title}
+                  className="rounded-[20px] border border-white/5 bg-raised p-8 transition-all hover:-translate-y-1 hover:border-accent/20"
+                >
+                  <span className="inline-flex rounded-full bg-accent-soft px-3 py-1.5 font-mono text-[10px] font-medium uppercase tracking-[2px] text-accent">
+                    {item.step}
+                  </span>
+                  <Icon size={26} weight="fill" className="mt-5 text-accent" />
+                  <p className="mt-4 font-display text-xl font-extrabold tracking-tight">{item.title}</p>
+                  <p className="mt-3 text-sm leading-[1.7] text-white/45">{item.body}</p>
                 </div>
               );
             })}
@@ -452,47 +502,70 @@ export default function Landing() {
         </section>
 
         {/* ===== FAQ ===== */}
-        <section id="faq" className="scroll-mt-20 border-t border-line py-14 md:py-20">
-          <h2 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-            {t.faq.title}
-          </h2>
-          <div className="mt-8 max-w-[65ch] divide-y divide-border">
+        <section id="faq" className="scroll-mt-20 pb-24 md:pb-28">
+          <SectionHead tag={t.faqTag} title={t.faq.title} />
+          <div className="mx-auto max-w-[720px]">
             {t.faq.items.map((item) => (
-              <details key={item.q} className="group py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-body text-base font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+              <details key={item.q} className="group border-b border-white/5 py-7">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-body text-[17px] font-bold tracking-tight text-white [&::-webkit-details-marker]:hidden">
                   {item.q}
                   <CaretDownHandle />
                 </summary>
-                <p className="mt-3 max-w-[60ch] font-body text-sm leading-relaxed text-muted">
-                  {item.a}
-                </p>
+                <p className="mt-4 max-w-[60ch] text-[15px] leading-[1.8] text-white/45">{item.a}</p>
               </details>
             ))}
           </div>
         </section>
+      </main>
 
-        {/* ===== FINAL CTA ===== */}
-        <section className="border-t border-line py-16 text-center md:py-24">
-          <h2 className="mx-auto max-w-[20ch] font-display text-3xl font-bold leading-tight tracking-tighter md:text-5xl">
-            {t.finalCta.title}
-          </h2>
-          <p className="mx-auto mt-4 max-w-[46ch] font-body text-base leading-relaxed text-muted">
-            {t.finalCta.subtitle}
-          </p>
-          <button
-            onClick={startCta}
-            className="mx-auto mt-8 flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-body text-base font-semibold text-accent-fg transition-transform active:translate-y-px active:scale-[0.98]"
+      {/* ===== FINAL CTA — big green box (GoClip pattern) ===== */}
+      <div className="px-5 pb-8 md:px-10">
+        <section className="relative overflow-hidden rounded-[28px] bg-accent">
+          <span
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-display text-[clamp(80px,18vw,240px)] font-black tracking-[-0.05em] text-black/5"
+            aria-hidden
           >
-            {t.finalCta.button}
-            <ArrowRight size={18} weight="bold" />
-          </button>
+            STICKERSYNC
+          </span>
+          <div className="relative px-6 py-20 text-center md:py-24">
+            <h2 className="mx-auto max-w-[20ch] font-display text-4xl font-black leading-[0.95] tracking-[-0.04em] text-black md:text-[clamp(40px,7vw,88px)]">
+              {t.finalCta.title}
+            </h2>
+            <p className="mx-auto mt-5 max-w-[34ch] text-base leading-relaxed text-black/50 md:text-lg">
+              {t.finalCta.subtitle}
+            </p>
+            <button
+              onClick={startCta}
+              className="mx-auto mt-9 flex min-h-[52px] items-center gap-2 rounded-full bg-black px-12 py-4 font-body text-lg font-extrabold tracking-tight text-white transition-transform hover:scale-105 active:scale-95"
+            >
+              {t.finalCta.button} <ArrowRight size={18} weight="bold" />
+            </button>
+            <p className="mt-4 text-[13px] text-black/40">{t.finalCta.note}</p>
+          </div>
         </section>
       </div>
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 py-6 md:px-10">
-          <p className="font-body text-xs text-muted">{t.footer.rights}</p>
-          <p className="font-body text-xs text-muted">{t.footer.disclaimer}</p>
+      {/* ===== FOOTER ===== */}
+      <footer className="border-t border-white/5">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 px-5 py-8 md:px-10">
+          <p className="font-display text-lg font-black tracking-tight">
+            Sticker<em className="not-italic text-accent">Sync</em>
+          </p>
+          <div className="flex items-center gap-4">
+            <a href="#how" className="text-[13px] text-white/45 transition-colors hover:text-white">
+              {t.nav.howItWorks}
+            </a>
+            <a href="#pricing" className="text-[13px] text-white/45 transition-colors hover:text-white">
+              {t.nav.pricing}
+            </a>
+            <a href="#faq" className="text-[13px] text-white/45 transition-colors hover:text-white">
+              {t.nav.faq}
+            </a>
+          </div>
+        </div>
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-2 px-5 pb-8 md:px-10">
+          <p className="text-xs text-white/35">{t.footer.rights}</p>
+          <p className="text-xs text-white/35">{t.footer.disclaimer}</p>
         </div>
       </footer>
 
@@ -509,7 +582,7 @@ export default function Landing() {
       )}
       {authError && !authMode && (
         <div
-          className="fixed bottom-4 left-1/2 z-40 w-[min(92vw,26rem)] -translate-x-1/2 rounded-2xl bg-error-soft px-4 py-3 text-center font-body text-sm font-medium text-error"
+          className="fixed bottom-4 left-1/2 z-40 w-[min(92vw,26rem)] -translate-x-1/2 rounded-2xl bg-[#1a0d0d] px-4 py-3 text-center font-body text-sm font-medium text-error"
           style={{ boxShadow: "var(--shadow-lift)" }}
         >
           {authError}
@@ -521,7 +594,7 @@ export default function Landing() {
 
 function CaretDownHandle() {
   return (
-    <span className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180 motion-safe:transition-transform">
+    <span className="shrink-0 text-white/40 transition-transform duration-300 group-open:rotate-180 motion-safe:transition-transform">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>

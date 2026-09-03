@@ -11,7 +11,16 @@ export interface FaqItem {
 }
 
 export interface Dict {
-  nav: { openApp: string; howItWorks: string };
+  nav: {
+    howItWorks: string;
+    pricing: string;
+    safety: string;
+    faq: string;
+    signIn: string;
+    openApp: string;
+    backHome: string;
+    menu: string;
+  };
   hero: {
     eyebrow: string;
     title1: string;
@@ -21,11 +30,41 @@ export interface Dict {
     cta: string;
     ctaSecondary: string;
     checks: string[];
+    note: string;
+    noteLink: string;
   };
   marquee: string[];
-  stats: { title: string; library: string; downloads: string; pool: string };
-  feed: { title: string; empty: string; by: string; grabbed: string };
+  statsTag: string;
+  stats: {
+    title: string;
+    library: string;
+    librarySub: string;
+    downloads: string;
+    downloadsSub: string;
+    pool: string;
+    poolSub: string;
+  };
+  bento: {
+    filterTag: string;
+    filterTitle: string;
+    filterLine1: string;
+    filterLine2: string;
+    startTag: string;
+    startTitle: string;
+    startBody: string;
+    quickTag: string;
+    quickTitle: string;
+    quickSteps: string[];
+  };
+  feed: {
+    title: string;
+    empty: string;
+    by: string;
+    grabbed: string;
+  };
+  howTag: string;
   how: { title: string; steps: HowStep[] };
+  vsTag: string;
   vs: {
     title: string;
     lead: string;
@@ -34,23 +73,35 @@ export interface Dict {
     usItems: string[];
     themItems: string[];
   };
+  pricingTag: string;
   pricing: {
     title: string;
     lead: string;
+    founderNote: string;
+    founderSub: string;
+    codeTag: string;
+    codeHint: string;
     soon: string;
     popular: string;
-    free: { name: string; price: string; desc: string; items: string[]; cta: string };
-    starter: { name: string; price: string; desc: string; items: string[]; cta: string };
-    bundle: { name: string; price: string; desc: string; items: string[]; cta: string };
+    free: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
+    starter: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
+    bundle: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     note: string;
   };
+  safetyTag: string;
   safety: {
     title: string;
     lead: string;
-    items: { title: string; body: string }[];
+    items: { step: string; title: string; body: string }[];
   };
+  faqTag: string;
   faq: { title: string; items: FaqItem[] };
-  finalCta: { title: string; subtitle: string; button: string };
+  finalCta: {
+    title: string;
+    subtitle: string;
+    button: string;
+    note: string;
+  };
   footer: { rights: string; disclaimer: string };
 }
 
@@ -69,15 +120,24 @@ export function persistLocale(locale: Locale) {
 
 export const dict: Record<Locale, Dict> = {
   en: {
-    nav: { openApp: "Open app", howItWorks: "How it works" },
+    nav: {
+      howItWorks: "How it works",
+      pricing: "Pricing",
+      safety: "Is it safe?",
+      faq: "FAQ",
+      signIn: "Sign in",
+      openApp: "Open app",
+      backHome: "Back to home",
+      menu: "Menu",
+    },
     hero: {
-      eyebrow: "TikTok comments → WhatsApp stickers",
+      eyebrow: "Sticker hunter — live now",
       title1: "TikTok comments.",
       title2: "Scanned.",
       title3: "In your WhatsApp.",
       subtitle:
-        "People drop animated stickers in TikTok comment sections. StickerSync finds every one of them from any public video — ready to import into WhatsApp in a single tap.",
-      cta: "Start free — 3 downloads on us",
+        "StickerSync finds every animated sticker people drop in TikTok comment sections — from any public video — ready to import into WhatsApp in a single tap.",
+      cta: "Start free",
       ctaSecondary: "See how it works",
       checks: [
         "Works on any TikTok video",
@@ -85,6 +145,8 @@ export const dict: Record<Locale, Dict> = {
         "3 free downloads on signup",
         "WhatsApp-ready packs",
       ],
+      note: "Stickers come straight from the original animated WebP — never a screenshot.",
+      noteLink: "See why that matters →",
     },
     marquee: [
       "Original animated WebP",
@@ -96,21 +158,42 @@ export const dict: Record<Locale, Dict> = {
       "Free tier forever",
       "One-tap import",
     ],
+    statsTag: "The numbers",
     stats: {
       title: "Growing with every scan",
       library: "stickers collected",
+      librarySub: "Every sticker ever grabbed by hunters — the shared library.",
       downloads: "stickers delivered",
+      downloadsSub: "Delivered straight into WhatsApp sticker trays.",
       pool: "world pool credits",
+      poolSub: "Free credits waiting to be claimed. First come, first served.",
+    },
+    bento: {
+      filterTag: "Username filter",
+      filterTitle: "Only their stickers",
+      filterLine1: "@sticker_poster",
+      filterLine2: "→ 1 sticker found in 3s",
+      startTag: "To get started",
+      startTitle: "$0",
+      startBody: "Free tier included. Try it on real videos before you spend a cent.",
+      quickTag: "Up in minutes",
+      quickTitle: "Three taps and done",
+      quickSteps: [
+        "Paste the TikTok link",
+        "Note the sticker's username",
+        "Import to WhatsApp",
+      ],
     },
     feed: {
-      title: "Live — stickers getting grabbed",
+      title: "StickerSync — Live Activity Feed",
       empty:
         "No grabs yet. Be the first — scan a video and download a sticker, it shows up here.",
       by: "by",
       grabbed: "grabbed",
     },
+    howTag: "How it works",
     how: {
-      title: "From comment to chat in three steps",
+      title: "Three steps.\nInfinite stickers.",
       steps: [
         {
           lead: "Spot a sticker you like.",
@@ -126,8 +209,9 @@ export const dict: Record<Locale, Dict> = {
         },
       ],
     },
+    vsTag: "The comparison",
     vs: {
-      title: "Why StickerSync wins",
+      title: "Why StickerSync\nwins every time.",
       lead: "The old way is a screenshot. The screenshot loses the animation.",
       us: "StickerSync",
       them: "Manual screenshot",
@@ -146,14 +230,21 @@ export const dict: Record<Locale, Dict> = {
         "Minutes of fiddling per sticker",
       ],
     },
+    pricingTag: "Pricing",
     pricing: {
-      title: "Start free. Top up when hooked.",
-      lead: "No card needed to begin. Top-ups land soon — world pool drops with every purchase.",
-      soon: "Top-up coming soon",
-      popular: "Best value",
+      title: "Start free.\nScale when hooked.",
+      lead: "No credit card required to start. Top-ups land soon.",
+      founderNote: "Founder pricing — lock in Rp 500 Starter / Rp 10.000 Bundle for life.",
+      founderSub:
+        "Top-ups land soon via QRIS. Subscribe early and you're grandfathered at today's rate for as long as the site lives.",
+      codeTag: "Referral code?",
+      codeHint: "Apply at signup for bonus credits",
+      soon: "Coming soon",
+      popular: "Popular",
       free: {
         name: "Free",
         price: "$0",
+        priceUnit: "",
         desc: "Try it on real videos before spending a cent.",
         items: [
           "3 free downloads on signup",
@@ -166,6 +257,7 @@ export const dict: Record<Locale, Dict> = {
       starter: {
         name: "Starter",
         price: "Rp 500",
+        priceUnit: "",
         desc: "An impulse buy cheaper than parking.",
         items: [
           "2 private credits",
@@ -178,6 +270,7 @@ export const dict: Record<Locale, Dict> = {
       bundle: {
         name: "Bundle",
         price: "Rp 10.000",
+        priceUnit: "",
         desc: "For serial sticker hunters.",
         items: [
           "45 private credits (+5 bonus)",
@@ -187,28 +280,33 @@ export const dict: Record<Locale, Dict> = {
         ],
         cta: "Get Bundle",
       },
-      note: "Free tier stays free · Top-ups via QRIS · Cancel nothing, it's credits",
+      note: "✓ Free tier stays free  ·  ✓ Top-ups via QRIS  ·  ✓ No subscription, it's credits",
     },
+    safetyTag: "Is it safe?",
     safety: {
-      title: "Is it safe?",
-      lead: "Yes. Here's exactly what we touch — and don't.",
+      title: "Yes.\nHere's what we touch.",
+      lead: "And exactly what we don't.",
       items: [
         {
+          step: "Step 1",
           title: "We never ask for your TikTok login",
           body: "Scanning reads public comment sections through the same API your browser uses. No TikTok account, password, or session ever touches StickerSync.",
         },
         {
+          step: "Step 2",
           title: "Original files, not screenshots",
           body: "Downloads come straight from the sticker's original animated WebP — the exact file the commenter posted, resized to WhatsApp spec.",
         },
         {
+          step: "Step 3",
           title: "Stickers belong to their creators",
           body: "We don't host or claim ownership of any sticker. Creators can request removal of any sticker from our library and we'll take it down.",
         },
       ],
     },
+    faqTag: "FAQ",
     faq: {
-      title: "Questions answered",
+      title: "Questions\nanswered.",
       items: [
         {
           q: "Why do I need the username filter?",
@@ -240,6 +338,7 @@ export const dict: Record<Locale, Dict> = {
       title: "That sticker won't screenshot itself.",
       subtitle: "Every comment section is hiding stickers. Start hunting — free.",
       button: "Start free",
+      note: "Free tier available · Starter from Rp 500 · Bundle Rp 10.000",
     },
     footer: {
       rights: "StickerSync — stickers belong to their original creators on TikTok.",
@@ -248,15 +347,24 @@ export const dict: Record<Locale, Dict> = {
   },
 
   id: {
-    nav: { openApp: "Buka app", howItWorks: "Cara pakai" },
+    nav: {
+      howItWorks: "Cara pakai",
+      pricing: "Harga",
+      safety: "Aman nggak?",
+      faq: "FAQ",
+      signIn: "Masuk",
+      openApp: "Buka app",
+      backHome: "Kembali ke home",
+      menu: "Menu",
+    },
     hero: {
-      eyebrow: "Komentar TikTok → Stiker WhatsApp",
+      eyebrow: "Pemburu stiker — live sekarang",
       title1: "Komentar TikTok.",
       title2: "Discan.",
       title3: "Masuk WhatsApp.",
       subtitle:
-        "Orang-orang menaruh stiker animasi di kolom komentar TikTok. StickerSync menemukan semuanya dari video publik mana pun — siap masuk ke WhatsApp dalam sekali tap.",
-      cta: "Mulai gratis — 3 download buat kamu",
+        "StickerSync menemukan semua stiker animasi yang orang drop di kolom komentar TikTok — dari video publik mana pun — siap masuk WhatsApp sekali tap.",
+      cta: "Mulai gratis",
       ctaSecondary: "Lihat cara pakainya",
       checks: [
         "Jalan di video TikTok mana pun",
@@ -264,6 +372,8 @@ export const dict: Record<Locale, Dict> = {
         "3 download gratis saat daftar",
         "Pack siap WhatsApp",
       ],
+      note: "Stiker diambil langsung dari WebP animasi original — bukan screenshot.",
+      noteLink: "Lihat kenapa itu penting →",
     },
     marquee: [
       "WebP animasi original",
@@ -275,21 +385,42 @@ export const dict: Record<Locale, Dict> = {
       "Free tier selamanya",
       "Import sekali tap",
     ],
+    statsTag: "Angkanya",
     stats: {
       title: "Tumbuh setiap kali ada yang scan",
       library: "stiker terkumpul",
+      librarySub: "Semua stiker yang pernah diambil para pemburu — library bersama.",
       downloads: "stiker terkirim",
+      downloadsSub: "Terkirim langsung ke tray stiker WhatsApp.",
       pool: "credit world pool",
+      poolSub: "Credit gratis menunggu diambil. Siapa cepat, dia dapat.",
+    },
+    bento: {
+      filterTag: "Filter username",
+      filterTitle: "Stikernya dia saja",
+      filterLine1: "@sticker_poster",
+      filterLine2: "→ 1 stiker ketemu dalam 3 detik",
+      startTag: "Buat mulai",
+      startTitle: "Rp 0",
+      startBody: "Free tier sudah termasuk. Coba di video asli sebelum keluar uang sepeser pun.",
+      quickTag: "Selesai dalam hitungan menit",
+      quickTitle: "Tiga tap, beres",
+      quickSteps: [
+        "Tempel link TikTok",
+        "Catat username stikernya",
+        "Import ke WhatsApp",
+      ],
     },
     feed: {
-      title: "Live — stiker sedang diambil orang",
+      title: "StickerSync — Live Activity Feed",
       empty:
         "Belum ada yang mengambil. Jadi yang pertama — scan video dan unduh stiker, kamu muncul di sini.",
       by: "oleh",
       grabbed: "diambil",
     },
+    howTag: "Cara pakai",
     how: {
-      title: "Dari komentar ke chat dalam tiga langkah",
+      title: "Tiga langkah.\nStiker tak terbatas.",
       steps: [
         {
           lead: "Temukan stiker yang kamu suka.",
@@ -305,8 +436,9 @@ export const dict: Record<Locale, Dict> = {
         },
       ],
     },
+    vsTag: "Perbandingannya",
     vs: {
-      title: "Kenapa StickerSync menang",
+      title: "Kenapa StickerSync\nmenang selalu.",
       lead: "Cara lama: screenshot. Dan screenshot membunuh animasinya.",
       us: "StickerSync",
       them: "Screenshot manual",
@@ -325,14 +457,21 @@ export const dict: Record<Locale, Dict> = {
         "Beribet menit-menit per stiker",
       ],
     },
+    pricingTag: "Harga",
     pricing: {
-      title: "Mulai gratis. Isi kalau sudah ketagihan.",
-      lead: "Tanpa kartu untuk mulai. Top-up segera hadir — setiap pembelian menetes ke world pool.",
-      soon: "Top-up segera hadir",
-      popular: "Paling hemat",
+      title: "Mulai gratis.\nNaikin kalau sudah ketagihan.",
+      lead: "Tanpa kartu kredit untuk mulai. Top-up segera hadir.",
+      founderNote: "Founder pricing — kunci Rp 500 Starter / Rp 10.000 Bundle selamanya.",
+      founderSub:
+        "Top-up segera hadir via QRIS. Daftar lebih awal dan harga kamu terkunci selama site ini hidup.",
+      codeTag: "Kode referral?",
+      codeHint: "Masukkan saat daftar untuk bonus credit",
+      soon: "Segera hadir",
+      popular: "Populer",
       free: {
         name: "Gratis",
         price: "Rp 0",
+        priceUnit: "",
         desc: "Coba di video asli sebelum keluar uang sepeser pun.",
         items: [
           "3 download gratis saat daftar",
@@ -345,6 +484,7 @@ export const dict: Record<Locale, Dict> = {
       starter: {
         name: "Starter",
         price: "Rp 500",
+        priceUnit: "",
         desc: "Harga impulse, lebih murah dari parkir motor.",
         items: [
           "2 credit private",
@@ -357,6 +497,7 @@ export const dict: Record<Locale, Dict> = {
       bundle: {
         name: "Bundle",
         price: "Rp 10.000",
+        priceUnit: "",
         desc: "Buat pemburu stiker sejati.",
         items: [
           "45 credit private (bonus +5)",
@@ -366,28 +507,33 @@ export const dict: Record<Locale, Dict> = {
         ],
         cta: "Ambil Bundle",
       },
-      note: "Free tier tetap gratis · Top-up via QRIS · Tanpa langganan, ini credit",
+      note: "✓ Free tier tetap gratis  ·  ✓ Top-up via QRIS  ·  ✓ Tanpa langganan, ini credit",
     },
+    safetyTag: "Aman nggak?",
     safety: {
-      title: "Aman nggak?",
-      lead: "Aman. Ini saja yang kami sentuh — dan yang tidak.",
+      title: "Aman.\nIni yang kami sentuh.",
+      lead: "Dan yang tidak kami sentuh.",
       items: [
         {
+          step: "Langkah 1",
           title: "Kami tidak pernah minta login TikTok kamu",
           body: "Scanning membaca kolom komentar publik lewat API yang sama dengan yang dipakai browser kamu. Tidak ada akun, password, atau sesi TikTok yang tersentuh StickerSync.",
         },
         {
+          step: "Langkah 2",
           title: "File original, bukan screenshot",
           body: "Unduhan diambil langsung dari file WebP animasi asli stikernya — file yang sama persis dengan yang dikomentator kirim, di-resize ke spec WhatsApp.",
         },
         {
+          step: "Langkah 3",
           title: "Stiker tetap milik kreatornya",
           body: "Kami tidak meng-host atau mengakui kepemilikan stiker apa pun. Kreator bisa minta penghapusan stikernya dari library kami, dan kami turunkan.",
         },
       ],
     },
+    faqTag: "FAQ",
     faq: {
-      title: "Pertanyaan terjawab",
+      title: "Pertanyaan\nterjawab.",
       items: [
         {
           q: "Buat apa sih filter username?",
@@ -419,6 +565,7 @@ export const dict: Record<Locale, Dict> = {
       title: "Stiker itu nggak akan screenshot dirinya sendiri.",
       subtitle: "Setiap kolom komentar menyimpan stiker. Mulai berburu — gratis.",
       button: "Mulai gratis",
+      note: "Free tier tersedia · Starter dari Rp 500 · Bundle Rp 10.000",
     },
     footer: {
       rights: "StickerSync — stiker tetap milik kreator aslinya di TikTok.",

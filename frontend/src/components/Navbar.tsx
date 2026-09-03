@@ -3,7 +3,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Gift,
   Coins,
   Globe,
   SignIn,
@@ -11,43 +10,10 @@ import {
   CaretDown,
   SignOut,
   HouseSimple,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
-import { API_BASE, getToken, clearSession, refreshBalance } from "@/lib/auth";
+import { getToken, clearSession, refreshBalance } from "@/lib/auth";
 import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
-
-const PoolPill = memo(function PoolPill() {
-  const [pool, setPool] = useState<number | null>(null);
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/pool`);
-        const data = await res.json();
-        if (alive) setPool(data.pool);
-      } catch {}
-    };
-    tick();
-    const id = window.setInterval(tick, 30_000);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
-  }, []);
-  if (pool === null) return null;
-  return (
-    <a
-      href="#how"
-      className="hidden md:flex items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-2 font-body text-xs font-semibold text-foreground transition-colors hover:opacity-90"
-    >
-      <span className="relative flex h-2 w-2" aria-hidden>
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-      </span>
-      <Gift size={14} weight="fill" className="text-accent" />
-      World pool: <span className="font-mono">{pool.toLocaleString()}</span>
-    </a>
-  );
-});
 
 export function Navbar({ variant }: { variant: "landing" | "app" }) {
   const router = useRouter();
@@ -102,12 +68,14 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
     setLocale(l);
   };
 
+  // HARD navigation: clears all client state + guards, guarantees full page transition.
+  // (router.push("/") from /app could dedup/fail silently — this was the back-to-home bug.)
+  const goHome = () => window.location.assign("/");
+  const goApp = () => window.location.assign("/app");
+
   const handleSignOut = () => {
     clearSession();
-    setMenuOpen(false);
-    setSignedIn(false);
-    setBalance(null);
-    router.push("/");
+    window.location.assign("/");
   };
 
   // lazy-load modal to keep the navbar light
@@ -125,113 +93,129 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
 
   return (
     <>
-      <nav className="sticky top-0 z-30 border-b border-line bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 md:gap-4 md:px-10">
-          <a href="/" className="font-display text-lg font-bold tracking-tight">
-            Sticker<span className="text-accent">Sync</span>
+      <nav
+        className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl"
+        style={{ background: "rgba(3,3,3,0.8)" }}
+      >
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-3.5 md:px-10">
+          <a href="/" className="font-display text-xl font-black tracking-tight">
+            Sticker<em className="not-italic text-accent">Sync</em>
           </a>
 
           {variant === "landing" && (
-            <a
-              href="#how"
-              className="ml-4 hidden font-body text-sm font-medium text-muted transition-colors hover:text-foreground lg:block"
-            >
-              {t.nav.howItWorks}
-            </a>
-          )}
-
-          <div className="mx-auto">
-            <PoolPill />
-          </div>
-
-          <div
-            className="flex items-center rounded-full border border-line bg-raised p-1"
-            role="group"
-            aria-label="Language"
-          >
-            {(["en", "id"] as const).map((l) => (
-              <button
-                key={l}
-                onClick={() => switchLocale(l)}
-                aria-pressed={locale === l}
-                className={`flex min-h-[32px] items-center gap-1 rounded-full px-3 font-body text-xs font-semibold uppercase tracking-wide transition-colors ${
-                  locale === l ? "bg-accent text-accent-fg" : "text-muted hover:text-foreground"
-                }`}
-              >
-                <Globe size={13} />
-                {l === "en" ? "EN" : "ID"}
-              </button>
-            ))}
-          </div>
-
-          {!signedIn ? (
-            <button
-              onClick={() => setAuthOpen("login")}
-              className="flex min-h-[36px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-sm font-semibold text-accent-fg transition-transform active:translate-y-px active:scale-[0.98]"
-            >
-              <SignIn size={15} weight="bold" /> Sign in
-            </button>
-          ) : variant === "landing" ? (
-            <a
-              href="/app"
-              className="flex min-h-[36px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-sm font-semibold text-accent-fg transition-transform active:translate-y-px active:scale-[0.98]"
-            >
-              {balance ?? "…"} <ArrowRight size={15} weight="bold" />
-            </a>
-          ) : (
-            <div className="relative flex items-center" ref={menuRef}>
-              {/* Balance chip: DISPLAY ONLY — no sign-out on click (bug fix) */}
-              <div
-                className="flex items-center gap-1.5 rounded-full rounded-r-none border border-r-0 border-line bg-raised px-3.5 py-2 font-body text-xs font-semibold"
-                aria-label={`Balance: ${balance ?? "loading"}`}
-              >
-                <Coins size={14} weight="fill" className="text-accent" />
-                {balance ?? "…"}
-              </div>
-              <button
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-expanded={menuOpen}
-                aria-haspopup="menu"
-                aria-label="Account menu"
-                className="flex min-h-[36px] items-center rounded-full rounded-l-none border border-line bg-raised px-2.5 py-2 text-muted transition-colors hover:text-foreground"
-              >
-                <CaretDown size={14} weight="bold" />
-              </button>
-              {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-[calc(100%+8px)] w-56 overflow-hidden rounded-2xl border border-line bg-background"
-                  style={{ boxShadow: "var(--shadow-sticker)" }}
-                >
-                  <div className="border-b border-line px-4 py-3">
-                    <p className="font-body text-xs uppercase tracking-wide text-muted">
-                      Balance
-                    </p>
-                    <p className="font-display text-lg font-bold">{balance ?? "…"}</p>
-                  </div>
-                  {variant === "app" && (
-                    <button
-                      role="menuitem"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        router.push("/");
-                      }}
-                      className="flex w-full items-center gap-2 px-4 py-3 font-body text-sm font-medium text-foreground transition-colors hover:bg-raised"
-                    >
-                      <HouseSimple size={16} /> Back to home
-                    </button>
-                  )}
-                  <button
-                    role="menuitem"
-                    onClick={handleSignOut}
-                    className="flex w-full items-center gap-2 px-4 py-3 font-body text-sm font-medium text-error transition-colors hover:bg-error-soft"
-                  >
-                    <SignOut size={16} /> Sign out
-                  </button>
-                </div>
-              )}
+            <div className="hidden items-center gap-6 lg:flex">
+              <a href="#how" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
+                {t.nav.howItWorks}
+              </a>
+              <a href="#pricing" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
+                {t.nav.pricing}
+              </a>
+              <a href="#safety" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
+                {t.nav.safety}
+              </a>
+              <a href="#faq" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
+                {t.nav.faq}
+              </a>
             </div>
           )}
+
+          {variant === "app" && (
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                goHome();
+              }}
+              className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
+            >
+              <HouseSimple size={14} /> {t.nav.backHome}
+            </a>
+          )}
+
+          <div className="flex items-center gap-3">
+            {/* Language switch */}
+            <div
+              className="flex items-center gap-1 rounded-full border border-white/10 p-0.5"
+              role="group"
+              aria-label="Language"
+            >
+              {(["en", "id"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => switchLocale(l)}
+                  aria-pressed={locale === l}
+                  className={`rounded-full px-2.5 py-1 font-body text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                    locale === l ? "bg-white text-background" : "text-white/40 hover:text-white"
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {!signedIn ? (
+              <button
+                onClick={() => setAuthOpen("signup")}
+                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+              >
+                <SignIn size={14} weight="bold" /> {t.nav.signIn}
+              </button>
+            ) : variant === "landing" ? (
+              <button
+                onClick={goApp}
+                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+              >
+                <MagnifyingGlass size={14} weight="bold" /> {t.nav.openApp}
+              </button>
+            ) : (
+              <div className="relative flex items-center" ref={menuRef}>
+                {/* Balance chip: DISPLAY ONLY — no sign-out on click (bug fix) */}
+                <div
+                  className="flex items-center gap-1.5 rounded-l-full border border-r-0 border-white/10 bg-raised px-3.5 py-2 font-mono text-xs font-semibold text-white/80"
+                  aria-label={`Balance: ${balance ?? "loading"}`}
+                >
+                  <Coins size={13} weight="fill" className="text-accent" />
+                  {balance ?? "…"}
+                </div>
+                <button
+                  onClick={() => setMenuOpen((o) => !o)}
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Account menu"
+                  className="flex min-h-[34px] items-center rounded-r-full border border-white/10 bg-raised px-2.5 py-2 text-white/40 transition-colors hover:text-white"
+                >
+                  <CaretDown size={13} weight="bold" />
+                </button>
+                {menuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-[calc(100%+8px)] w-52 overflow-hidden rounded-2xl border border-white/10 bg-raised shadow-[0_18px_40px_-16px_rgba(0,0,0,0.8)]"
+                  >
+                    <div className="border-b border-white/10 px-4 py-3">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-white/40">
+                        Balance
+                      </p>
+                      <p className="mt-0.5 font-display text-base font-bold">{balance ?? "…"}</p>
+                    </div>
+                    <button
+                      role="menuitem"
+                      onClick={goHome}
+                      className="flex w-full items-center gap-2.5 px-4 py-3 font-body text-[13px] font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white"
+                    >
+                      <HouseSimple size={15} /> {t.nav.backHome}
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-2.5 px-4 py-3 font-body text-[13px] font-medium text-error transition-colors hover:bg-error-soft"
+                    >
+                      <SignOut size={15} /> Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

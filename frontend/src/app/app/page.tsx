@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   MagnifyingGlass,
@@ -55,7 +54,6 @@ function StickerSkeleton() {
 }
 
 export default function AppPage() {
-  const router = useRouter();
   const [url, setUrl] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
@@ -74,14 +72,14 @@ export default function AppPage() {
     setBalance(b);
   }, []);
 
-  // AUTH GUARD: no token -> back to landing with signin
+  // AUTH GUARD: no token -> hard redirect to landing with signin (no client-router loop)
   useEffect(() => {
     if (!getToken()) {
-      router.replace("/?signin=1");
+      window.location.replace("/?signin=1");
       return;
     }
     refreshBalanceState();
-  }, [router, refreshBalanceState]);
+  }, [refreshBalanceState]);
 
   const handleFetch = useCallback(async () => {
     if (!url.trim() || loading) return;
@@ -116,7 +114,7 @@ export default function AppPage() {
       if (downloading) return;
       const t = getToken();
       if (!t) {
-        router.replace("/?signin=1");
+        window.location.replace("/?signin=1");
         return;
       }
       setDownloading(sticker.id);
@@ -132,7 +130,7 @@ export default function AppPage() {
         }
         if (res.status === 401) {
           clearSession();
-          router.replace("/?signin=1");
+          window.location.replace("/?signin=1");
           return;
         }
         if (!res.ok) {
@@ -158,7 +156,7 @@ export default function AppPage() {
         setDownloading(null);
       }
     },
-    [downloading, router, refreshBalanceState]
+    [downloading, refreshBalanceState]
   );
 
   const filterLabel = username.trim() ? ` from @${username.trim().replace(/^@/, "")}` : "";
@@ -338,19 +336,18 @@ export default function AppPage() {
         </section>
       </div>
 
-      <footer className="border-t border-line">
+      <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 py-6 md:px-10">
-          <p className="font-body text-xs text-muted">StickerSync — stickers belong to their original creators on TikTok.</p>
-          <p className="font-body text-xs text-muted">Not affiliated with TikTok or WhatsApp.</p>
+          <p className="font-body text-xs text-white/35">StickerSync — stickers belong to their original creators on TikTok.</p>
+          <p className="font-body text-xs text-white/35">Not affiliated with TikTok or WhatsApp.</p>
         </div>
       </footer>
 
       {/* Top-up modal (payment stub) */}
       {showTopUp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm" onClick={() => setShowTopUp(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setShowTopUp(false)}>
           <div
-            className="w-full max-w-sm rounded-[2rem] border border-line bg-background p-7"
-            style={{ boxShadow: "var(--shadow-sticker)" }}
+            className="w-full max-w-sm rounded-[24px] border border-white/10 bg-raised p-7 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.9)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">
