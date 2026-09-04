@@ -1,18 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   MagnifyingGlass,
   Link as LinkIcon,
   WarningCircle,
   Sticker as StickerIcon,
-  DownloadSimple,
   Check,
   Coins,
+  ShareFat,
+  WhatsappLogo,
   X,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken, clearSession, refreshBalance } from "@/lib/auth";
+import { dict, detectLocale, type Locale } from "@/lib/i18n";
 import { AuthModal } from "@/components/AuthModal";
 import { Navbar } from "@/components/Navbar";
 import { LibraryBrowse } from "@/components/LibraryBrowse";
@@ -55,6 +57,9 @@ function StickerSkeleton() {
 }
 
 export default function AppPage() {
+  const [locale, setLocale] = useState<Locale>("en");
+  useEffect(() => setLocale(detectLocale()), []);
+  const lib = dict[locale].library;
   const [url, setUrl] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
@@ -110,13 +115,16 @@ export default function AppPage() {
     }
   }, [url, username, loading]);
 
+  // Smart delivery: charge credit via POST /download, then deliver the
+  // paid bytes the most practical way — OS share sheet (mobile) > clipboard
+  // (desktop) > plain download (fallback). Returns a toast key or null.
   const handleDownload = useCallback(
-    async (sticker: Sticker, format: string) => {
-      if (downloading) return;
+    async (sticker: Sticker, format: string): Promise<string | null> => {
+      if (downloading) return null;
       const t = getToken();
       if (!t) {
         window.location.replace("/?signin=1");
-        return;
+        return null;
       }
       setDownloading(sticker.id);
       setSaved(null);
@@ -127,32 +135,68 @@ export default function AppPage() {
         );
         if (res.status === 402) {
           setShowTopUp(true);
-          return;
+          return null;
         }
         if (res.status === 401) {
           clearSession();
           window.location.replace("/?signin=1");
-          return;
+          return null;
         }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.detail || "download failed");
         }
         const blob = await res.blob();
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `${sticker.id}.${format === "webp" ? "webp" : format}`;
-        a.click();
-        URL.revokeObjectURL(a.href);
+
+        // ---- delivery (bytes are already paid for) ----
+        if (format === "webp") {
+          const file = new File([blob], `${sticker.id}.webp`, { type: "image/webp" });
+          // 1) mobile: OS share sheet — pick any chat app
+          if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: sticker.name || "Sticker" });
+              setSaved(sticker.id);
+              refreshBalanceState();
+              return "shared";
+            } catch (err) {
+              if (err instanceof DOMException && err.name === "AbortError") {
+                // user closed the sheet without sharing — bytes paid, deliver as download
+                triggerDownload(blob, `${sticker.id}.webp`);
+                setSaved(sticker.id);
+                refreshBalanceState();
+                return "saved";
+              }
+              // share failed — fall through to clipboard/download
+            }
+          }
+          // 2) desktop: copy to clipboard for instant paste
+          try {
+            if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+              await navigator.clipboard.write([new ClipboardItem({ "image/webp": blob })]);
+              setSaved(sticker.id);
+              refreshBalanceState();
+              return "copied";
+            }
+          } catch {}
+          // 3) fallback: plain download
+          triggerDownload(blob, `${sticker.id}.webp`);
+          setSaved(sticker.id);
+          refreshBalanceState();
+          return "saved";
+        }
+
+        // .wastickers (WA tray import) — always a download
+        triggerDownload(blob, `${sticker.id}.${format}`);
         setSaved(sticker.id);
-        window.setTimeout(() => setSaved((s) => (s === sticker.id ? null : s)), 2400);
         refreshBalanceState();
+        return "waSaved";
       } catch (err) {
         setError(
           err instanceof Error && err.message !== "download failed"
             ? err.message
             : "Download failed. The sticker link may have expired — re-scan and try again."
         );
+        return null;
       } finally {
         setDownloading(null);
       }
@@ -160,11 +204,47 @@ export default function AppPage() {
     [downloading, refreshBalanceState]
   );
 
-  // Library rows use sticker_id; map to the Sticker shape handleDownload expects
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
+
+  // Toast after Get/WA (auto-dismiss)
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const showToast = useCallback((key: string) => {
+    setToast(key);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), 5000);
+  }, []);
+
+  // Get button: smart-delivery webp; WA button: wastickers tray import
+  const handleGet = useCallback(
+    async (sticker: Sticker) => {
+      const result = await handleDownload(sticker, "webp");
+      if (result) showToast(result);
+    },
+    [handleDownload, showToast]
+  );
+
+  const handleWA = useCallback(
+    async (sticker: Sticker) => {
+      const result = await handleDownload(sticker, "wastickers");
+      if (result) showToast(result);
+    },
+    [handleDownload, showToast]
+  );
+
+  // Library rows use sticker_id; map to the Sticker shape + toast on delivery
   const handleLibDownload = useCallback(
-    (s: { sticker_id: string; url: string }, format: string) =>
-      handleDownload({ id: s.sticker_id, url: s.url } as Sticker, format),
-    [handleDownload]
+    async (s: { sticker_id: string; url: string }, format: string) => {
+      const result = await handleDownload({ id: s.sticker_id, url: s.url } as Sticker, format);
+      if (result) showToast(result);
+    },
+    [handleDownload, showToast]
   );
 
   const filterLabel = username.trim() ? ` from @${username.trim().replace(/^@/, "")}` : "";
@@ -306,24 +386,25 @@ export default function AppPage() {
                       </p>
                       <div className="mt-3.5 flex gap-1.5">
                         <button
-                          onClick={() => handleDownload(sticker, "wastickers")}
+                          onClick={() => handleGet(sticker)}
                           disabled={downloading === sticker.id}
-                          className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95 disabled:opacity-50"
+                          className="flex min-h-[40px] flex-[2] items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-fg transition-all hover:shadow-[0_0_30px_rgba(254,44,85,0.45)] active:scale-95 disabled:opacity-50"
                         >
                           {saved === sticker.id ? (
-                            <><Check size={14} weight="bold" /> Saved</>
+                            <><Check size={14} weight="bold" /> {lib.get}</>
                           ) : downloading === sticker.id ? (
                             "…"
                           ) : (
-                            <><DownloadSimple size={14} weight="bold" /> Download</>
+                            <><ShareFat size={14} weight="bold" /> {lib.get}</>
                           )}
                         </button>
                         <button
-                          onClick={() => handleDownload(sticker, "webp")}
+                          onClick={() => handleWA(sticker)}
                           disabled={downloading === sticker.id}
-                          className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-background px-3 py-2 text-xs font-semibold text-white/80 transition-colors hover:border-white/30 active:scale-95 disabled:opacity-50"
+                          title="WhatsApp tray import (.wastickers)"
+                          className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95 disabled:opacity-50"
                         >
-                          .webp
+                          {downloading === sticker.id ? "…" : <><WhatsappLogo size={14} weight="bold" /> {lib.waBtn}</>}
                         </button>
                       </div>
                     </div>
@@ -352,6 +433,22 @@ export default function AppPage() {
           <p className="font-body text-xs text-white/35">Not affiliated with TikTok or WhatsApp.</p>
         </div>
       </footer>
+
+      {/* Smart-delivery toast (auto-dismiss 5s) */}
+      {toast && (
+        <div
+          className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,26rem)] -translate-x-1/2 rounded-2xl border border-accent-line bg-accent-soft px-4 py-3 text-center text-sm font-medium text-white shadow-[0_18px_40px_-16px_rgba(0,0,0,0.9)]"
+          role="status"
+        >
+          {toast === "shared"
+            ? lib.toastShared
+            : toast === "copied"
+            ? lib.toastCopied
+            : toast === "waSaved"
+            ? lib.toastWASaved
+            : lib.toastSaved}
+        </div>
+      )}
 
       {/* Top-up modal (payment stub) */}
       {showTopUp && (

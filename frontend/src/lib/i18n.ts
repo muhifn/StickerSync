@@ -90,6 +90,12 @@ export interface Dict {
     sortRecent: string;
     sortDownloads: string;
     empty: string;
+    get: string;
+    waBtn: string;
+    toastShared: string;
+    toastCopied: string;
+    toastSaved: string;
+    toastWASaved: string;
   };
   howTag: string;
   how: { title: string; steps: HowStep[] };
@@ -248,6 +254,12 @@ export const dict: Record<Locale, Dict> = {
       sortRecent: "Newest",
       sortDownloads: "Most downloaded",
       empty: "Nothing matches that search. Try another keyword — or scan a video and add new stickers to the library.",
+      get: "Get",
+      waBtn: "WA",
+      toastShared: "Shared — open it in your chat to start using it",
+      toastCopied: "Copied — paste (Ctrl+V) into any chat",
+      toastSaved: "Saved — open the file to add it",
+      toastWASaved: "Saved — open it and WhatsApp adds it to your tray",
     },
     howTag: "How it works",
     how: {
@@ -263,7 +275,7 @@ export const dict: Record<Locale, Dict> = {
         },
         {
           lead: "Import to your chat.",
-          body: "Grab the .wastickers for a one-tap WhatsApp import, or the raw .webp for Telegram, Discord, and any chat app.",
+          body: "Tap Get — your phone's share sheet opens, pick any chat (WhatsApp, Telegram, Discord) and it lands there instantly. On desktop it copies to your clipboard. WA button = one-tap WhatsApp tray import.",
         },
       ],
     },
@@ -368,7 +380,7 @@ export const dict: Record<Locale, Dict> = {
       items: [
         {
           q: "Can I use these outside WhatsApp?",
-          a: "Yes. Every sticker downloads as the original animated .webp — drag it into Telegram, Discord, LINE, or any chat that accepts images. For WhatsApp mobile there's also the .wastickers one-tap import.",
+          a: "Yes. Tap Get on any sticker — on your phone it opens the share sheet so you can send it straight into WhatsApp, Telegram, Discord, or any chat. On desktop it copies to your clipboard for pasting anywhere. The WA button does a one-tap WhatsApp tray import.",
         },
         {
           q: "Why do I need the username filter?",
@@ -508,6 +520,12 @@ export const dict: Record<Locale, Dict> = {
       sortRecent: "Terbaru",
       sortDownloads: "Terbanyak diunduh",
       empty: "Tidak ada yang cocok dengan pencarian itu. Coba kata lain — atau scan video dan tambahkan stiker baru ke library.",
+      get: "Ambil",
+      waBtn: "WA",
+      toastShared: "Terbagikan — buka di chat kamu buat langsung pakai",
+      toastCopied: "Tercopy — paste (Ctrl+V) ke chat mana pun",
+      toastSaved: "Tersimpan — buka filenya untuk dipakai",
+      toastWASaved: "Tersimpan — dibuka langsung masuk tray stiker WhatsApp",
     },
     howTag: "Cara pakai",
     how: {
@@ -523,7 +541,7 @@ export const dict: Record<Locale, Dict> = {
         },
         {
           lead: "Pindahkan ke chat kamu.",
-          body: "Ambil .wastickers untuk import satu-tap ke WhatsApp, atau file .webp mentah untuk Telegram, Discord, dan aplikasi chat apa pun.",
+          body: "Tap Ambil — share sheet HP terbuka, pilih chat mana pun (WhatsApp, Telegram, Discord) dan stikernya langsung masuk. Di desktop stikernya tercopy ke clipboard. Tombol WA = import sekali-tap ke tray WhatsApp.",
         },
       ],
     },
@@ -628,7 +646,7 @@ export const dict: Record<Locale, Dict> = {
       items: [
         {
           q: "Bisa dipakai di luar WhatsApp?",
-          a: "Bisa. Setiap stiker diunduh sebagai .webp animasi original — drag ke Telegram, Discord, LINE, atau chat mana pun yang terima gambar. Untuk WhatsApp di HP ada juga import satu-tap .wastickers.",
+          a: "Bisa. Tap Ambil di stiker mana pun — di HP share sheet terbuka jadi bisa langsung dikirim ke WhatsApp, Telegram, Discord, atau chat mana pun. Di desktop stikernya tercopy ke clipboard buat di-paste ke mana saja. Tombol WA buat import sekali-tap ke tray WhatsApp.",
         },
         {
           q: "Buat apa sih filter username?",

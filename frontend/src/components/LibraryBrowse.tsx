@@ -3,12 +3,13 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import {
   MagnifyingGlass,
-  DownloadSimple,
   Check,
   Eye,
   ArrowLeft,
   ArrowRight,
   Funnel,
+  ShareFat,
+  WhatsappLogo,
 } from "@phosphor-icons/react";
 import { API_BASE } from "@/lib/auth";
 import { dict, detectLocale, type Locale } from "@/lib/i18n";
@@ -148,16 +149,17 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
                 <p className="mt-0.5 truncate text-sm font-semibold text-white/85">@{s.author_uid}</p>
                 <div className="mt-3 flex gap-1.5">
                   <button
-                    onClick={() => onDownload(s, "wastickers")}
-                    className="flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95"
+                    onClick={() => onDownload(s, "webp")}
+                    className="flex min-h-[38px] flex-[2] items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-fg transition-all hover:shadow-[0_0_30px_rgba(254,44,85,0.45)] active:scale-95"
                   >
-                    <DownloadSimple size={14} weight="bold" /> WhatsApp
+                    <ShareFat size={14} weight="bold" /> {t.get}
                   </button>
                   <button
-                    onClick={() => onDownload(s, "webp")}
-                    className="flex min-h-[38px] items-center justify-center rounded-full border border-white/10 bg-background px-3 py-2 text-xs font-semibold text-white/80 transition-colors hover:border-white/30"
+                    onClick={() => onDownload(s, "wastickers")}
+                    title="WhatsApp tray import (.wastickers)"
+                    className="flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95"
                   >
-                    .webp
+                    <WhatsappLogo size={14} weight="bold" /> {t.waBtn}
                   </button>
                 </div>
               </div>
