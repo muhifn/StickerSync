@@ -23,12 +23,19 @@ import library as lib
 
 app = FastAPI(title="StickerSync API", version="4.0.0")
 
+# CORS: strict origin allowlist (no wildcard). Set ALLOWED_ORIGINS env for extra origins.
+_origins = [
+    o.strip() for o in _env_cors.split(",") if o.strip()
+] if (_env_cors := __import__("os").environ.get("ALLOWED_ORIGINS", "")) else []
+if not _origins:
+    _origins = ["https://stickersync.vercel.app", "http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 TIKTOK_COMMENT_API = "https://www.tiktok.com/api/comment/list/"
@@ -106,6 +113,114 @@ def rate_limit_scan(ip: str) -> None:
         cutoff = now - 120
         for k in [k for k, v in _rate_buckets.items() if v[1] < cutoff]:
             _rate_buckets.pop(k, None)
+
+
+# ---- Security helpers: SSRF guard, id sanitization, more rate limits ----
+
+# sticker ids are TikTok numeric ids (or our safe tokens) — keep strict
+_STICKER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def sanitize_sticker_id(sticker_id: str) -> str:
+    """Reject ids that could smuggle header/SQL/path tricks."""
+    if not _STICKER_ID_RE.match(sticker_id):
+        raise HTTPException(status_code=400, detail="Invalid sticker id")
+    return sticker_id
+
+
+# hosts the sticker downloader is allowed to fetch from (TikTok CDN family)
+_ALLOWED_FETCH_HOSTS = (
+    "tiktokcdn.com",
+    "tiktokcdn-us.com",
+    "tiktokcdn-eu.com",
+    "tiktok.com",
+    "ibyteimg.com",
+    "ipstatp.com",
+    "byteoversea.com",
+    "muscdn.com",
+    "musical.ly",
+    "tiktokv.com",
+)
+
+import ipaddress as _ipa
+
+
+def _host_allowed(hostname: str) -> bool:
+    """Allow only known TikTok CDN domains; block raw IPs (SSRF guard)."""
+    if not hostname:
+        return False
+    h = hostname.lower().rstrip(".")
+    # block IP-literal hosts (cloud metadata, internal ranges)
+    try:
+        _ipa.ip_address(h)
+        return False
+    except ValueError:
+        pass
+    return h == _ALLOWED_FETCH_HOSTS[0] or any(
+        h == d or h.endswith("." + d) for d in _ALLOWED_FETCH_HOSTS
+    )
+
+
+def validate_fetch_urls(urls: list[str]) -> list[str]:
+    """SSRF guard: only TikTok CDN URLs pass; scheme must be https."""
+    out = []
+    for u in urls or []:
+        try:
+            p = urlparse(u)
+        except Exception:
+            continue
+        if p.scheme != "https":
+            continue
+        if _host_allowed(p.hostname or ""):
+            out.append(u)
+    if not out:
+        raise HTTPException(
+            status_code=400,
+            detail="Sticker URL is not from an allowed CDN — re-scan the video.",
+        )
+    return out
+
+
+# rate limit: auth endpoints (brute-force guard) — 10 req/min per IP
+_auth_buckets: dict[str, tuple[float, float]] = {}
+
+
+def rate_limit_auth(ip: str) -> None:
+    now = time.time()
+    tokens, last = _auth_buckets.get(ip, (10.0, now))
+    tokens = min(10.0, tokens + (now - last) * (10.0 / 60.0))
+    if tokens < 1.0:
+        raise HTTPException(status_code=429, detail="Too many attempts — wait a minute")
+    _auth_buckets[ip] = (tokens - 1.0, now)
+    if len(_auth_buckets) > 50_000:
+        cutoff = now - 120
+        for k in [k for k, v in _auth_buckets.items() if v[1] < cutoff]:
+            _auth_buckets.pop(k, None)
+
+
+# rate limit: downloads (credit endpoint) — 12/min per IP
+_dl_buckets: dict[str, tuple[float, float]] = {}
+
+
+def rate_limit_download(ip: str) -> None:
+    now = time.time()
+    tokens, last = _dl_buckets.get(ip, (12.0, now))
+    tokens = min(12.0, tokens + (now - last) * 0.2)
+    if tokens < 1.0:
+        raise HTTPException(status_code=429, detail="Too many downloads — slow down")
+    _dl_buckets[ip] = (tokens - 1.0, now)
+    if len(_dl_buckets) > 50_000:
+        cutoff = now - 120
+        for k in [k for k, v in _dl_buckets.items() if v[1] < cutoff]:
+            _dl_buckets.pop(k, None)
+
+
+def require_cron_secret(request: Request) -> None:
+    """Protect destructive maintenance endpoints (cleanup sweeps)."""
+    secret = __import__("os").environ.get("CRON_SECRET", "")
+    provided = request.headers.get("x-cron-secret", "")
+    if not secret or provided != secret:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 class FetchRequest(BaseModel):
@@ -529,8 +644,9 @@ def _gen_ref_code() -> str:
 
 
 @app.post("/auth/signup")
-async def auth_signup(req: SignupRequest):
+async def auth_signup(req: SignupRequest, request: Request):
     """Native signup: email + password. Returns a signed token."""
+    rate_limit_auth(request.client.host if request else "local")
     email = req.email.strip().lower()
     result = await db.fetch_val(
         "SELECT auth_signup($1, $2, $3)", email, req.password, req.referral_code
@@ -544,8 +660,9 @@ async def auth_signup(req: SignupRequest):
 
 
 @app.post("/auth/login")
-async def auth_login(req: LoginRequest):
+async def auth_login(req: LoginRequest, request: Request):
     """Native login. Returns a signed token."""
+    rate_limit_auth(request.client.host if request else "local")
     email = req.email.strip().lower()
     result = await db.fetch_val(
         "SELECT auth_login($1, $2)", email, req.password
@@ -587,6 +704,7 @@ async def me(user: dict = Depends(current_user)):
 @app.post("/download/{sticker_id}")
 async def download_sticker(
     sticker_id: str,
+    request: Request,
     background: BackgroundTasks,
     format: str = Query("wastickers", regex="^(wastickers|zip|webp)$"),
     sticker_url: Optional[str] = Query(None),
@@ -594,6 +712,8 @@ async def download_sticker(
 ):
     """Spend order: free -> pool race -> private. L1 cache hit skips spend? NO —
     every download costs 1 credit regardless of cache (cache saves TIME, not CREDITS)."""
+    rate_limit_download(request.client.host if request else "local")
+    sticker_id = sanitize_sticker_id(sticker_id)
     uid = user["sub"]
 
     # 1. Charge FIRST (atomic) — prevents free downloads via race
@@ -616,11 +736,11 @@ async def download_sticker(
         if cached_urls:
             urls = cached_urls["urls"]
         if not urls and sticker_url:
-            urls = [sticker_url]
+            urls = validate_fetch_urls([sticker_url])
         if not urls:
             raise HTTPException(status_code=404, detail="Sticker not found. Re-scan the video first.")
         try:
-            processed = await download_and_process(urls)
+            processed = await download_and_process(validate_fetch_urls(urls))
             lru_put(sticker_id, processed)
         except Exception:
             raise HTTPException(
@@ -702,8 +822,9 @@ async def activity():
 
 
 @app.get("/cleanup")
-async def cleanup():
-    """Daily sweep endpoint (called by external cron). Removes expired library URLs."""
+async def cleanup(request: Request):
+    """Daily sweep endpoint (external cron only, X-Cron-Secret required)."""
+    require_cron_secret(request)
     n = await lib.cleanup_expired()
     return {"removed": n}
 
@@ -732,6 +853,7 @@ def rate_limit_view(ip: str) -> None:
 async def view_sticker(sticker_id: str, background: BackgroundTasks, request: Request):
     """Anonymous view ping (live-watch). Fire-and-forget: 202, no auth."""
     rate_limit_view(request.client.host if request else "local")
+    sticker_id = sanitize_sticker_id(sticker_id)
     background.add_task(lib.log_view, sticker_id)
     return {"ok": True}
 

@@ -24,8 +24,8 @@ def get_jwt_secret() -> Optional[str]:
     return _secret
 
 
-def make_token(user_id: str, ttl_hours: int = 24 * 30) -> str:
-    """Create a signed token for a user."""
+def make_token(user_id: str, ttl_hours: int = 24 * 7) -> str:
+    """Create a signed token for a user (7-day TTL)."""
     now = int(time.time())
     payload = {"sub": user_id, "iat": now, "exp": now + ttl_hours * 3600}
     return jwt.encode(payload, get_jwt_secret(), algorithm="HS256")

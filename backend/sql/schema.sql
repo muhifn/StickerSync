@@ -152,3 +152,27 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Pool balance check (unlimited for purchasers)
 -- Note: limit check is inside spend_credit via pool_claims
+
+-- ============ SECURITY HARDENING (2026-09-04) ============
+-- Fix Supabase linter warnings 0011/0028/0029 + harden API surface.
+
+-- 1) Pin function search_path (prevents search_path hijack on SECURITY DEFINER)
+--    NOTE: 'extensions' required — pgcrypto (gen_salt/crypt) lives there.
+ALTER FUNCTION public.auth_login(text, text)            SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.auth_signup(text, text, text)     SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.oauth_login(text, text)           SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.grant_signup_credits(uuid, text)  SET search_path = public, extensions, pg_temp;
+ALTER FUNCTION public.spend_credit(uuid)               SET search_path = public, extensions, pg_temp;
+
+-- 2) Revoke EXECUTE from PostgREST roles — these RPCs are backend-only
+--    (FastAPI connects as postgres = owner; owner rights are unaffected by REVOKE)
+REVOKE EXECUTE ON FUNCTION public.auth_login(text, text)            FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.auth_signup(text, text, text)     FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.oauth_login(text, text)           FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.grant_signup_credits(uuid, text)  FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.spend_credit(uuid)                FROM anon, authenticated, PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.rls_auto_enable()                 FROM anon, authenticated, PUBLIC;
+
+-- 3) Prevent future auto-grants to PostgREST roles
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated, PUBLIC;
