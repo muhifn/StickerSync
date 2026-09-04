@@ -14,11 +14,6 @@ export function getToken(): string | null {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
-export function getUserId(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(USER_KEY);
-}
-
 export function setSession(token: string, userId: string) {
   window.localStorage.setItem(TOKEN_KEY, token);
   window.localStorage.setItem(USER_KEY, userId);
@@ -27,11 +22,6 @@ export function setSession(token: string, userId: string) {
 export function clearSession() {
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
-}
-
-export function authHeaders(): Record<string, string> {
-  const t = getToken();
-  return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
 /** Fetch /me balance; returns display string like "3 free" or "12 credits", or null. */
