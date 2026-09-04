@@ -524,17 +524,6 @@ def build_pack(sticker_files: list[tuple[str, bytes]], pack_name: str) -> bytes:
     return zip_buf.getvalue()
 
 
-class SignupRequest(BaseModel):
-    email: str
-    password: str
-    referral_code: Optional[str] = None
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -547,8 +536,9 @@ BACKEND_URL = _env.environ.get("BACKEND_URL", "")
 
 
 @app.get("/auth/oauth/google/start")
-async def oauth_google_start(ref: Optional[str] = Query(None)):
+async def oauth_google_start(ref: Optional[str] = Query(None), request: Request = None):
     """Kick off Google OAuth: one-time state, redirect to Google consent screen."""
+    rate_limit_auth(request.client.host if request else "local")
     import secrets as _s
     from urllib.parse import urlencode as _ue
     state = _s.token_urlsafe(32)
@@ -641,38 +631,6 @@ async def oauth_google_callback(code: Optional[str] = Query(None), state: Option
 def _gen_ref_code() -> str:
     import secrets as _secrets
     return _secrets.token_hex(3).upper()  # 6-char hex
-
-
-@app.post("/auth/signup")
-async def auth_signup(req: SignupRequest, request: Request):
-    """Native signup: email + password. Returns a signed token."""
-    rate_limit_auth(request.client.host if request else "local")
-    email = req.email.strip().lower()
-    result = await db.fetch_val(
-        "SELECT auth_signup($1, $2, $3)", email, req.password, req.referral_code
-    )
-    import json as _json
-    data = _json.loads(result) if isinstance(result, str) else result
-    if isinstance(data, dict) and data.get("error"):
-        raise HTTPException(status_code=400, detail=data["error"])
-    token = auth.make_token(str(data["user_id"]))
-    return {"token": token, "user_id": data["user_id"]}
-
-
-@app.post("/auth/login")
-async def auth_login(req: LoginRequest, request: Request):
-    """Native login. Returns a signed token."""
-    rate_limit_auth(request.client.host if request else "local")
-    email = req.email.strip().lower()
-    result = await db.fetch_val(
-        "SELECT auth_login($1, $2)", email, req.password
-    )
-    import json as _json
-    data = _json.loads(result) if isinstance(result, str) else result
-    if isinstance(data, dict) and data.get("error"):
-        raise HTTPException(status_code=401, detail=data["error"])
-    token = auth.make_token(str(data["user_id"]))
-    return {"token": token, "user_id": data["user_id"]}
 
 
 @app.get("/me")
