@@ -98,8 +98,11 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
         style={{ background: "rgba(3,3,3,0.8)" }}
       >
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-3.5 md:px-10">
-          <a href="/" className="font-display text-xl font-black tracking-tight">
-            Sticker<em className="not-italic text-accent">Sync</em>
+          <a href="/" className="group inline-flex items-center font-display text-xl font-extrabold tracking-tight">
+            Sticker
+            <span className="ml-0.5 inline-block -rotate-3 rounded-md border-2 border-white/90 bg-white/5 px-1.5 py-0.5 transition-transform group-hover:rotate-0">
+              <em className="not-italic text-accent">Sync</em>
+            </span>
           </a>
 
           {variant === "landing" && (
@@ -156,14 +159,14 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
             {!signedIn ? (
               <button
                 onClick={() => setAuthOpen("signup")}
-                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 <SignIn size={14} weight="bold" /> {t.nav.signIn}
               </button>
             ) : variant === "landing" ? (
               <button
                 onClick={goApp}
-                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+                className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-body text-[13px] font-bold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 <MagnifyingGlass size={14} weight="bold" /> {t.nav.openApp}
               </button>

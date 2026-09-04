@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, DM_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Inter, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { Cursor } from "@/components/Cursor";
 import { GridBackground } from "@/components/GridBackground";
+
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${dmMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${bricolage.variable} ${inter.variable} ${dmMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <GridBackground />
         <Cursor />

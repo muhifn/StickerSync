@@ -45,6 +45,12 @@ export interface Dict {
     poolSub: string;
   };
   bento: {
+    pipelineTag: string;
+    pipelineTitle: string;
+    pipelineStep1: string;
+    pipelineStep2: string;
+    pipelineStep3: string;
+    pipelineCaption: string;
     filterTag: string;
     filterTitle: string;
     filterLine1: string;
@@ -56,18 +62,19 @@ export interface Dict {
     quickTag: string;
     quickTitle: string;
     quickSteps: string[];
-    qualityTag: string;
-    qualityTitle: string;
-    qualityRows: { label: string; score: string }[];
-    qualitySub: string;
-    wideLabel: string;
-    wideSub: string;
   };
-  feed: {
+  terminal: {
     title: string;
+    prompt: string;
+    live: string;
+    boot1: string;
+    boot2: string;
+    boot3: string;
+    verbs: { scan: string; download: string; sync: string };
+    scanLine: string;
+    syncLine: string;
+    progress: string;
     empty: string;
-    by: string;
-    grabbed: string;
   };
   trending: {
     tag: string;
@@ -156,29 +163,30 @@ export const dict: Record<Locale, Dict> = {
       eyebrow: "Sticker hunter — live now",
       title1: "TikTok comments.",
       title2: "Scanned.",
-      title3: "In your WhatsApp.",
+      title3: "In your chats.",
       subtitle:
-        "StickerSync finds every animated sticker people drop in TikTok comment sections — from any public video — ready to import into WhatsApp in a single tap.",
+        "StickerSync finds every animated sticker people drop in TikTok comment sections — from any public video. One-tap import to WhatsApp, or the raw .webp for Telegram, Discord, and any chat app.",
       cta: "Start free",
       ctaSecondary: "See how it works",
       checks: [
         "Works on any TikTok video",
         "No TikTok login needed",
         "3 free downloads on signup",
-        "WhatsApp-ready packs",
+        "WhatsApp, Telegram & more",
       ],
       note: "Stickers come straight from the original animated WebP — never a screenshot.",
       noteLink: "See why that matters →",
     },
     marquee: [
       "Original animated WebP",
-      "512×512 WhatsApp spec",
+      "512×512 sticker spec",
       "Username filter",
       "Referral bonus credits",
       "World pool drops",
       "Screenshot-free quality",
       "Free tier forever",
       "One-tap import",
+      ".webp for any chat",
     ],
     statsTag: "The numbers",
     stats: {
@@ -186,11 +194,17 @@ export const dict: Record<Locale, Dict> = {
       library: "stickers collected",
       librarySub: "Every sticker ever grabbed by hunters — the shared library.",
       downloads: "stickers delivered",
-      downloadsSub: "Delivered straight into WhatsApp sticker trays.",
+      downloadsSub: "Delivered straight into chats.",
       pool: "world pool credits",
       poolSub: "Free credits waiting to be claimed. First come, first served.",
     },
     bento: {
+      pipelineTag: "From comment to chat",
+      pipelineTitle: "The pipeline",
+      pipelineStep1: "TikTok comment",
+      pipelineStep2: "Sticker file",
+      pipelineStep3: "Your chat",
+      pipelineCaption: "Original animated file — not a screenshot. Works anywhere.",
       filterTag: "Username filter",
       filterTitle: "Only their stickers",
       filterLine1: "@sticker_poster",
@@ -204,26 +218,21 @@ export const dict: Record<Locale, Dict> = {
       quickSteps: [
         "Paste the TikTok link",
         "Note the sticker's username",
-        "Import to WhatsApp",
+        "Import to your chat",
       ],
-      qualityTag: "Sticker quality score",
-      qualityTitle: "What lands in your tray",
-      qualityRows: [
-        { label: "Animation intact", score: "9/10" },
-        { label: "512×512 WhatsApp spec", score: "9/10" },
-        { label: "Original WebP file", score: "8/10" },
-        { label: "Screenshot quality", score: "2/10" },
-      ],
-      qualitySub: "Original files, never screenshots. Only the best make it to your tray.",
-      wideLabel: "stickers collected",
-      wideSub: "Every sticker ever grabbed by hunters — the shared library.",
     },
-    feed: {
-      title: "StickerSync — Live Activity Feed",
-      empty:
-        "No grabs yet. Be the first — scan a video and download a sticker, it shows up here.",
-      by: "by",
-      grabbed: "grabbed",
+    terminal: {
+      title: "StickerSync — Hunt Terminal",
+      prompt: "sticker@sync:~$ hunt --live",
+      live: "LIVE",
+      boot1: "> initializing hunter...",
+      boot2: "> connecting to tiktok comment stream...",
+      boot3: "> ready.",
+      verbs: { scan: "SCAN", download: "DOWNLOAD", sync: "SYNC" },
+      scanLine: "video %s — %s stickers found",
+      syncLine: "pack delivered → your chat",
+      progress: "processing %s%%",
+      empty: "No hunts yet. Be the first — scan a video and grab a sticker.",
     },
     trending: {
       tag: "Live watch",
@@ -253,8 +262,8 @@ export const dict: Record<Locale, Dict> = {
           body: "Share the video, copy the link, drop it in the search box — add the username if you want only theirs.",
         },
         {
-          lead: "Import to WhatsApp.",
-          body: "Download the .wastickers file, open it on your phone, and it lands in your sticker tray.",
+          lead: "Import to your chat.",
+          body: "Grab the .wastickers for a one-tap WhatsApp import, or the raw .webp for Telegram, Discord, and any chat app.",
         },
       ],
     },
@@ -266,9 +275,9 @@ export const dict: Record<Locale, Dict> = {
       them: "Manual screenshot",
       usItems: [
         "Original animated sticker file",
-        "Exact 512×512 WhatsApp spec",
+        "Exact 512×512 sticker spec",
         "One-tap .wastickers import",
-        "Find stickers from any video",
+        "Works in any chat app",
         "Free tier to start",
       ],
       themItems: [
@@ -344,7 +353,7 @@ export const dict: Record<Locale, Dict> = {
         {
           step: "Step 2",
           title: "Original files, not screenshots",
-          body: "Downloads come straight from the sticker's original animated WebP — the exact file the commenter posted, resized to WhatsApp spec.",
+          body: "Downloads come straight from the sticker's original animated WebP — the exact file the commenter posted, resized to sticker spec.",
         },
         {
           step: "Step 3",
@@ -358,6 +367,10 @@ export const dict: Record<Locale, Dict> = {
       title: "Questions\nanswered.",
       items: [
         {
+          q: "Can I use these outside WhatsApp?",
+          a: "Yes. Every sticker downloads as the original animated .webp — drag it into Telegram, Discord, LINE, or any chat that accepts images. For WhatsApp mobile there's also the .wastickers one-tap import.",
+        },
+        {
           q: "Why do I need the username filter?",
           a: "Popular videos can have dozens of sticker comments. If you're after one specific sticker, note the username of whoever posted it and filter — you get exactly that sticker in seconds.",
         },
@@ -367,7 +380,7 @@ export const dict: Record<Locale, Dict> = {
         },
         {
           q: "What's the difference between .wastickers and .webp?",
-          a: ".wastickers is a one-tap import package for the WhatsApp mobile app — open it and the sticker lands in your tray. .webp is for WhatsApp Web: download it, drag it into a chat.",
+          a: ".wastickers is a one-tap import package for the WhatsApp mobile app — open it and the sticker lands in your tray. .webp is the raw file that works everywhere: Telegram, Discord, WhatsApp Web, or anywhere you drag it.",
         },
         {
           q: "What is the world pool?",
@@ -387,11 +400,11 @@ export const dict: Record<Locale, Dict> = {
       title: "That sticker won't screenshot itself.",
       subtitle: "Every comment section is hiding stickers. Start hunting — free.",
       button: "Start free",
-      note: "Free tier available · Starter from Rp 500 · Bundle Rp 10.000",
+      note: "Free tier available · Works in WhatsApp, Telegram, Discord & more",
     },
     footer: {
       rights: "StickerSync — stickers belong to their original creators on TikTok.",
-      disclaimer: "Not affiliated with TikTok or WhatsApp.",
+      disclaimer: "Not affiliated with TikTok, WhatsApp, or Telegram.",
     },
   },
 
@@ -410,29 +423,30 @@ export const dict: Record<Locale, Dict> = {
       eyebrow: "Pemburu stiker — live sekarang",
       title1: "Komentar TikTok.",
       title2: "Discan.",
-      title3: "Masuk WhatsApp.",
+      title3: "Masuk chat kamu.",
       subtitle:
-        "StickerSync menemukan semua stiker animasi yang orang drop di kolom komentar TikTok — dari video publik mana pun — siap masuk WhatsApp sekali tap.",
+        "StickerSync menemukan semua stiker animasi yang orang drop di kolom komentar TikTok — dari video publik mana pun. Import satu-tap ke WhatsApp, atau file .webp mentah untuk Telegram, Discord, dan aplikasi chat apa pun.",
       cta: "Mulai gratis",
       ctaSecondary: "Lihat cara pakainya",
       checks: [
         "Jalan di video TikTok mana pun",
         "Tanpa login TikTok",
         "3 download gratis saat daftar",
-        "Pack siap WhatsApp",
+        "WhatsApp, Telegram & lainnya",
       ],
       note: "Stiker diambil langsung dari WebP animasi original — bukan screenshot.",
       noteLink: "Lihat kenapa itu penting →",
     },
     marquee: [
       "WebP animasi original",
-      "Spesifikasi 512×512 WhatsApp",
+      "Spesifikasi stiker 512×512",
       "Filter username",
       "Bonus credit referral",
       "Hujan world pool",
       "Kualitas tanpa screenshot",
       "Free tier selamanya",
       "Import sekali tap",
+      ".webp untuk chat mana pun",
     ],
     statsTag: "Angkanya",
     stats: {
@@ -440,11 +454,17 @@ export const dict: Record<Locale, Dict> = {
       library: "stiker terkumpul",
       librarySub: "Semua stiker yang pernah diambil para pemburu — library bersama.",
       downloads: "stiker terkirim",
-      downloadsSub: "Terkirim langsung ke tray stiker WhatsApp.",
+      downloadsSub: "Terkirim langsung ke chat-chat.",
       pool: "credit world pool",
       poolSub: "Credit gratis menunggu diambil. Siapa cepat, dia dapat.",
     },
     bento: {
+      pipelineTag: "Dari komentar ke chat",
+      pipelineTitle: "Pipanya",
+      pipelineStep1: "Komentar TikTok",
+      pipelineStep2: "File stiker",
+      pipelineStep3: "Chat kamu",
+      pipelineCaption: "File animasi original — bukan screenshot. Jalan di mana saja.",
       filterTag: "Filter username",
       filterTitle: "Stikernya dia saja",
       filterLine1: "@sticker_poster",
@@ -458,26 +478,21 @@ export const dict: Record<Locale, Dict> = {
       quickSteps: [
         "Tempel link TikTok",
         "Catat username stikernya",
-        "Import ke WhatsApp",
+        "Import ke chat kamu",
       ],
-      qualityTag: "Skor kualitas stiker",
-      qualityTitle: "Yang masuk ke tray kamu",
-      qualityRows: [
-        { label: "Animasi utuh", score: "9/10" },
-        { label: "Spec 512×512 WhatsApp", score: "9/10" },
-        { label: "File WebP original", score: "8/10" },
-        { label: "Kualitas screenshot", score: "2/10" },
-      ],
-      qualitySub: "File original, bukan screenshot. Hanya yang terbaik masuk tray kamu.",
-      wideLabel: "stiker terkumpul",
-      wideSub: "Semua stiker yang pernah diambil para pemburu — library bersama.",
     },
-    feed: {
-      title: "StickerSync — Live Activity Feed",
-      empty:
-        "Belum ada yang mengambil. Jadi yang pertama — scan video dan unduh stiker, kamu muncul di sini.",
-      by: "oleh",
-      grabbed: "diambil",
+    terminal: {
+      title: "StickerSync — Hunt Terminal",
+      prompt: "sticker@sync:~$ hunt --live",
+      live: "LIVE",
+      boot1: "> menghidupkan pemburu...",
+      boot2: "> menyambung ke stream komentar tiktok...",
+      boot3: "> siap.",
+      verbs: { scan: "SCAN", download: "DOWNLOAD", sync: "SYNC" },
+      scanLine: "video %s — %s stiker ketemu",
+      syncLine: "pack terkirim → chat kamu",
+      progress: "memproses %s%%",
+      empty: "Belum ada perburuan. Jadi yang pertama — scan video dan ambil satu stiker.",
     },
     trending: {
       tag: "Live watch",
@@ -507,8 +522,8 @@ export const dict: Record<Locale, Dict> = {
           body: "Share video, salin linknya, tempel di kolom pencarian — tambahkan username kalau mau stiker dari dia saja.",
         },
         {
-          lead: "Pindahkan ke WhatsApp.",
-          body: "Unduh file .wastickers, buka di HP kamu, dan stikernya langsung masuk ke tray stiker WhatsApp.",
+          lead: "Pindahkan ke chat kamu.",
+          body: "Ambil .wastickers untuk import satu-tap ke WhatsApp, atau file .webp mentah untuk Telegram, Discord, dan aplikasi chat apa pun.",
         },
       ],
     },
@@ -520,9 +535,9 @@ export const dict: Record<Locale, Dict> = {
       them: "Screenshot manual",
       usItems: [
         "File stiker animasi original",
-        "Pas spec WhatsApp 512×512",
+        "Pas spec stiker 512×512",
         "Import .wastickers sekali tap",
-        "Temukan stiker dari video mana pun",
+        "Jalan di aplikasi chat mana pun",
         "Mulai gratis",
       ],
       themItems: [
@@ -598,7 +613,7 @@ export const dict: Record<Locale, Dict> = {
         {
           step: "Langkah 2",
           title: "File original, bukan screenshot",
-          body: "Unduhan diambil langsung dari file WebP animasi asli stikernya — file yang sama persis dengan yang dikomentator kirim, di-resize ke spec WhatsApp.",
+          body: "Unduhan diambil langsung dari file WebP animasi asli stikernya — file yang sama persis dengan yang dikomentator kirim, di-resize ke spec stiker.",
         },
         {
           step: "Langkah 3",
@@ -612,6 +627,10 @@ export const dict: Record<Locale, Dict> = {
       title: "Pertanyaan\nterjawab.",
       items: [
         {
+          q: "Bisa dipakai di luar WhatsApp?",
+          a: "Bisa. Setiap stiker diunduh sebagai .webp animasi original — drag ke Telegram, Discord, LINE, atau chat mana pun yang terima gambar. Untuk WhatsApp di HP ada juga import satu-tap .wastickers.",
+        },
+        {
           q: "Buat apa sih filter username?",
           a: "Video populer bisa punya lusinan komentar stiker. Kalau kamu mengejar satu stiker spesifik, catat username pengirimnya lalu filter — stiker itu muncul dalam hitungan detik.",
         },
@@ -621,7 +640,7 @@ export const dict: Record<Locale, Dict> = {
         },
         {
           q: "Beda .wastickers dan .webp apa?",
-          a: ".wastickers adalah paket import sekali tap untuk aplikasi WhatsApp di HP — dibuka langsung masuk tray stiker. .webp untuk WhatsApp Web: unduh, lalu drag ke chat.",
+          a: ".wastickers adalah paket import sekali tap untuk aplikasi WhatsApp di HP — dibuka langsung masuk tray stiker. .webp adalah file mentah yang jalan di mana saja: Telegram, Discord, WhatsApp Web, atau di mana pun kamu drag dia.",
         },
         {
           q: "World pool itu apa?",
@@ -641,11 +660,11 @@ export const dict: Record<Locale, Dict> = {
       title: "Stiker itu nggak akan screenshot dirinya sendiri.",
       subtitle: "Setiap kolom komentar menyimpan stiker. Mulai berburu — gratis.",
       button: "Mulai gratis",
-      note: "Free tier tersedia · Starter dari Rp 500 · Bundle Rp 10.000",
+      note: "Free tier tersedia · Jalan di WhatsApp, Telegram, Discord & lainnya",
     },
     footer: {
       rights: "StickerSync — stiker tetap milik kreator aslinya di TikTok.",
-      disclaimer: "Tidak berafiliasi dengan TikTok maupun WhatsApp.",
+      disclaimer: "Tidak berafiliasi dengan TikTok, WhatsApp, maupun Telegram.",
     },
   },
 };

@@ -105,7 +105,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
       {rows === null ? (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="overflow-hidden rounded-[20px] border border-white/5 bg-raised" aria-hidden>
+            <div key={i} className="die-cut overflow-hidden" aria-hidden>
               <div className="skeleton aspect-square" />
               <div className="p-3.5">
                 <div className="skeleton h-3 w-3/4 rounded-full" />
@@ -121,7 +121,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
           {rows.map((s) => (
             <article
               key={s.sticker_id}
-              className="sticker-card group overflow-hidden rounded-[20px] border border-white/5 bg-raised transition-all hover:-translate-y-1 hover:border-accent/25"
+              className="die-cut sticker-card group overflow-hidden transition-all hover:-translate-y-1"
               onMouseEnter={() => onView(s.sticker_id)}
             >
               <div className="relative aspect-square bg-background">
@@ -149,7 +149,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
                 <div className="mt-3 flex gap-1.5">
                   <button
                     onClick={() => onDownload(s, "wastickers")}
-                    className="flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-fg transition-transform active:scale-95"
+                    className="flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95"
                   >
                     <DownloadSimple size={14} weight="bold" /> WhatsApp
                   </button>

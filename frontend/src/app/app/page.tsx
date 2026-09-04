@@ -279,7 +279,7 @@ export default function AppPage() {
                 {result.stickers.map((sticker, i) => (
                   <article
                     key={sticker.id}
-                    className={`stagger-item sticker-card group rounded-[20px] border border-white/5 bg-raised p-3 hover:-translate-y-1 hover:rotate-0 ${
+                    className={`stagger-item sticker-card die-cut group p-3 hover:-translate-y-1 hover:rotate-0 ${
                       i % 3 === 1 ? "rotate-[1.25deg]" : i % 3 === 2 ? "rotate-[-1.25deg]" : "rotate-0"
                     }`}
                     style={{ ["--index" as string]: i }}
@@ -308,7 +308,7 @@ export default function AppPage() {
                         <button
                           onClick={() => handleDownload(sticker, "wastickers")}
                           disabled={downloading === sticker.id}
-                          className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 text-xs font-bold text-accent-fg transition-transform active:scale-95 disabled:opacity-50"
+                          className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-full bg-accent-2 px-3 py-2 text-xs font-bold text-accent-2-fg transition-transform active:scale-95 disabled:opacity-50"
                         >
                           {saved === sticker.id ? (
                             <><Check size={14} weight="bold" /> Saved</>

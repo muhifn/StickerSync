@@ -32,10 +32,12 @@ const Card = memo(function Card({
   s,
   onView,
   cta,
+  rank,
 }: {
   s: TrendingSticker;
   onView: (id: string) => void;
   cta: string;
+  rank: number | null;
 }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const pinged = useRef(false);
@@ -65,9 +67,16 @@ const Card = memo(function Card({
         e.preventDefault();
         window.location.assign("/?signin=1");
       }}
-      className="group block overflow-hidden rounded-[20px] border border-white/5 bg-raised transition-all hover:-translate-y-1 hover:border-accent/25"
+      className={`die-cut group relative block ${rank ? (rank === 1 ? "-rotate-2" : rank === 2 ? "rotate-1" : "-rotate-1") : ""} transition-transform hover:rotate-0 hover:-translate-y-1`}
     >
-      <div className="relative aspect-square overflow-hidden bg-background">
+      {rank !== null && (
+        <span className={`absolute left-2.5 top-2.5 z-10 rounded-md px-2 py-0.5 font-mono text-[11px] font-bold ${
+          rank === 1 ? "bg-accent text-accent-fg" : rank === 2 ? "bg-white text-background" : "bg-accent-2 text-accent-2-fg"
+        }`}>
+          #{rank}
+        </span>
+      )}
+      <div className="relative aspect-square overflow-hidden bg-[#0d0d0d]">
         <img
           src={s.url}
           alt={`Sticker by @${s.author_uid}`}
@@ -149,9 +158,9 @@ export const TrendingStrip = memo(function TrendingStrip() {
       <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
         {(stickers ?? Array.from({ length: 8 }, () => null)).map((s, i) =>
           s ? (
-            <Card key={s.sticker_id} s={s} onView={onView} cta={t.cta} />
+            <Card key={s.sticker_id} s={s} onView={onView} cta={t.cta} rank={i < 3 ? i + 1 : null} />
           ) : (
-            <div key={i} className="overflow-hidden rounded-[20px] border border-white/5 bg-raised" aria-hidden>
+            <div key={i} className="die-cut overflow-hidden" aria-hidden>
               <div className="skeleton aspect-square" />
               <div className="p-3.5">
                 <div className="skeleton h-3 w-3/4 rounded-full" />

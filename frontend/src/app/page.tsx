@@ -4,10 +4,13 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  CaretRight,
   Check,
+  ChatCircleDots,
   X,
   CursorClick,
   MagnifyingGlass,
+  Sticker as StickerIcon,
   WhatsappLogo,
   LockSimple,
   ShieldCheck,
@@ -18,7 +21,7 @@ import { API_BASE, getToken, setSession } from "@/lib/auth";
 import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
 import { Navbar } from "@/components/Navbar";
 import { CountUp } from "@/components/CountUp";
-import { ActivityFeed } from "@/components/ActivityFeed";
+import { HuntTerminal } from "@/components/HuntTerminal";
 import { TrendingStrip } from "@/components/TrendingStrip";
 import { AuthModal } from "@/components/AuthModal";
 
@@ -166,7 +169,7 @@ export default function Landing() {
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <button
             onClick={startCta}
-            className="flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-10 py-4 font-body text-base font-extrabold tracking-tight text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+            className="flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-10 py-4 font-body text-base font-extrabold tracking-tight text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
           >
             {t.hero.cta} <ArrowRight size={18} weight="bold" />
           </button>
@@ -210,7 +213,7 @@ export default function Landing() {
               key={i}
               className="flex items-center gap-3 font-body text-xs font-bold uppercase tracking-[2px] text-white/30"
             >
-              <Sparkle size={12} weight="fill" className="text-accent" />
+              <Sparkle size={12} weight="fill" className={i % 2 === 0 ? "text-accent" : "text-accent-purple"} />
               {m}
             </span>
           ))}
@@ -249,7 +252,7 @@ export default function Landing() {
               <p className="mt-1 text-[13px] leading-relaxed text-white/40">{t.stats.poolSub}</p>
             </div>
 
-            {/* QUALITY SCORE — 4 progress bars (GoClip AI Quality Score cell) */}
+            {/* PIPELINE — comment → sticker → your chat */}
             <div className="flex flex-col justify-center p-9 md:p-10">
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
@@ -257,32 +260,44 @@ export default function Landing() {
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
                 </span>
                 <p className="font-body text-[11px] font-bold uppercase tracking-[2px] text-accent">
-                  {t.bento.qualityTag}
+                  {t.bento.pipelineTag}
                 </p>
               </div>
-              <div className="mt-4 flex flex-col gap-2.5">
-                {t.bento.qualityRows.map((row) => {
-                  const num = parseInt(row.score, 10);
-                  const bad = num <= 3;
-                  return (
-                    <div key={row.label}>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs text-white/50">{row.label}</span>
-                        <span className={`text-xs font-bold ${bad ? "text-[#ff6060]" : "text-accent"}`}>
-                          {row.score}
-                        </span>
-                      </div>
-                      <div className="h-1 rounded-full bg-white/10">
-                        <div
-                          className={`h-full rounded-full ${bad ? "bg-[#ff6060]" : "bg-accent"}`}
-                          style={{ width: `${num * 10}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+              <p className="mt-4 font-display text-xl font-extrabold tracking-tight">
+                {t.bento.pipelineTitle}
+              </p>
+
+              {/* pipeline visual: pink comment bubble -> die-cut sticker -> green chat bubble */}
+              <div className="mt-5 flex items-center gap-2.5">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl rounded-bl-md border border-accent/30 bg-accent-soft">
+                    <ChatCircleDots size={22} weight="fill" className="text-accent" />
+                  </div>
+                  <p className="w-14 text-center text-[9px] font-semibold uppercase tracking-wide text-white/35">
+                    {t.bento.pipelineStep1}
+                  </p>
+                </div>
+                <CaretRight size={16} weight="bold" className="pipeline-arrow shrink-0 text-accent/70" aria-hidden />
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="die-cut flex h-14 w-14 items-center justify-center">
+                    <StickerIcon size={24} weight="fill" className="text-white/85" />
+                  </div>
+                  <p className="w-14 text-center text-[9px] font-semibold uppercase tracking-wide text-white/35">
+                    {t.bento.pipelineStep2}
+                  </p>
+                </div>
+                <CaretRight size={16} weight="bold" className="pipeline-arrow shrink-0 text-accent-2/70" aria-hidden />
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl rounded-br-md border border-accent-2/30 bg-accent-2-soft">
+                    <WhatsappLogo size={22} weight="fill" className="text-accent-2" />
+                  </div>
+                  <p className="w-14 text-center text-[9px] font-semibold uppercase tracking-wide text-white/35">
+                    {t.bento.pipelineStep3}
+                  </p>
+                </div>
               </div>
-              <p className="mt-4 text-xs text-white/25">{t.bento.qualitySub}</p>
+
+              <p className="mt-4 text-xs leading-relaxed text-white/40">{t.bento.pipelineCaption}</p>
             </div>
 
             {/* $0 TO START + badge */}
@@ -374,10 +389,10 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ===== LIVE TERMINAL (after how, GoClip order) ===== */}
+        {/* ===== HUNT TERMINAL (after how) ===== */}
         <section className="reveal pb-24 md:pb-28">
           <div className="mx-auto max-w-[820px]">
-            <ActivityFeed />
+            <HuntTerminal />
           </div>
         </section>
 
@@ -466,7 +481,7 @@ export default function Landing() {
               </ul>
               <button
                 onClick={startCta}
-                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(0,255,136,0.5)] active:scale-95"
+                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 {t.pricing.free.cta}
               </button>
@@ -583,16 +598,16 @@ export default function Landing() {
       <div className="reveal relative z-[1] px-5 pb-8 md:px-10">
         <section className="relative overflow-hidden rounded-[28px] bg-accent">
           <span
-            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-display text-[clamp(80px,18vw,240px)] font-black tracking-[-0.05em] text-black/5"
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none whitespace-nowrap font-display text-[clamp(80px,18vw,240px)] font-black tracking-[-0.05em] text-white/10"
             aria-hidden
           >
             STICKERSYNC
           </span>
           <div className="relative px-6 py-20 text-center md:py-24">
-            <h2 className="mx-auto max-w-[20ch] font-display text-4xl font-black leading-[0.95] tracking-[-0.04em] text-black md:text-[clamp(40px,7vw,88px)]">
+            <h2 className="mx-auto max-w-[20ch] font-display text-4xl font-extrabold leading-[0.95] tracking-[-0.04em] text-white md:text-[clamp(40px,7vw,88px)]">
               {t.finalCta.title}
             </h2>
-            <p className="mx-auto mt-5 max-w-[34ch] text-base leading-relaxed text-black/50 md:text-lg">
+            <p className="mx-auto mt-5 max-w-[34ch] text-base leading-relaxed text-white/70 md:text-lg">
               {t.finalCta.subtitle}
             </p>
             <button
@@ -601,7 +616,7 @@ export default function Landing() {
             >
               {t.finalCta.button} <ArrowRight size={18} weight="bold" />
             </button>
-            <p className="mt-4 text-[13px] text-black/40">{t.finalCta.note}</p>
+            <p className="mt-4 text-[13px] text-white/60">{t.finalCta.note}</p>
           </div>
         </section>
       </div>
@@ -609,8 +624,11 @@ export default function Landing() {
       {/* ===== FOOTER ===== */}
       <footer className="relative z-[1] border-t border-white/5">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-3 px-5 py-8 md:px-10">
-          <p className="font-display text-lg font-black tracking-tight">
-            Sticker<em className="not-italic text-accent">Sync</em>
+          <p className="font-display text-lg font-extrabold tracking-tight">
+            Sticker
+            <span className="ml-0.5 inline-block -rotate-3 rounded-md border-2 border-white/90 bg-white/5 px-1.5 py-0.5">
+              <em className="not-italic text-accent">Sync</em>
+            </span>
           </p>
           <div className="flex items-center gap-4">
             <a href="#how" className="text-[13px] text-white/45 transition-colors hover:text-white">
