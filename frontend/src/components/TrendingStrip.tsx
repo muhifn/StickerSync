@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { Eye, DownloadSimple, ArrowRight } from "@phosphor-icons/react";
-import { API_BASE } from "@/lib/auth";
+import { API_BASE, getToken } from "@/lib/auth";
 import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 
 export interface TrendingSticker {
@@ -37,7 +37,7 @@ const Card = memo(function Card({
   cta: string;
   rank: number | null;
 }) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLButtonElement>(null);
   const pinged = useRef(false);
 
   useEffect(() => {
@@ -57,14 +57,19 @@ const Card = memo(function Card({
     return () => ob.disconnect();
   }, [s.sticker_id, onView]);
 
+  const handleCta = () => {
+    if (getToken()) {
+      window.location.assign("/app"); // signed in -> go grab it in the app
+    } else {
+      window.dispatchEvent(new CustomEvent("stickersync:openauth", { detail: "signup" }));
+    }
+  };
+
   return (
-    <a
+    <button
       ref={ref}
-      href="#signup"
-      onClick={(e) => {
-        e.preventDefault();
-        window.location.assign("/?signin=1");
-      }}
+      type="button"
+      onClick={handleCta}
       className={`die-cut group relative block ${rank ? (rank === 1 ? "-rotate-2" : rank === 2 ? "rotate-1" : "-rotate-1") : ""} transition-transform hover:rotate-0 hover:-translate-y-1`}
     >
       {rank !== null && (
@@ -104,7 +109,7 @@ const Card = memo(function Card({
           </span>
         </div>
       </div>
-    </a>
+    </button>
   );
 });
 

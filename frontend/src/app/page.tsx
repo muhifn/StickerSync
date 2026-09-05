@@ -117,6 +117,16 @@ export default function Landing() {
     if (signin === "1" && !getToken()) setAuthMode("login");
   }, []);
 
+  // any component can request the auth modal (e.g. trending cards)
+  useEffect(() => {
+    const openAuth = (e: Event) => {
+      const mode = (e as CustomEvent).detail as "login" | "signup";
+      if (!getToken()) setAuthMode(mode ?? "signup");
+    };
+    window.addEventListener("stickersync:openauth", openAuth);
+    return () => window.removeEventListener("stickersync:openauth", openAuth);
+  }, []);
+
   // Scroll reveal (GoClip .r pattern): sections fade+slide in on viewport entry
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
