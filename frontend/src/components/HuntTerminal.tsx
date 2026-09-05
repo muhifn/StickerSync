@@ -2,7 +2,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { API_BASE } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 
 interface ActivityEvent {
   ago: string;
@@ -38,6 +38,7 @@ export const HuntTerminal = memo(function HuntTerminal() {
   useEffect(() => {
     setLocale(detectLocale());
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return onLocaleChange((l) => setLocale(l));
   }, []);
 
   // Build terminal lines from activity events

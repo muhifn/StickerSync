@@ -12,7 +12,7 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { API_BASE } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 import { useViewPing, type TrendingSticker } from "@/components/TrendingStrip";
 import { CrateButton } from "@/components/CrateButton";
 
@@ -34,6 +34,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
 
   useEffect(() => {
     setLocale(detectLocale());
+    return onLocaleChange((l) => setLocale(l));
   }, []);
 
   const load = useCallback(async () => {

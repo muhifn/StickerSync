@@ -97,6 +97,27 @@ export interface Dict {
     toastSaved: string;
     toastWASaved: string;
   };
+  tutorials: {
+    tag: string;
+    title: string;
+    lead: string;
+    t1Tag: string;
+    t1Title: string;
+    t1Steps: string[];
+    t1Note: string;
+    t1Cta: string;
+    t2Tag: string;
+    t2Title: string;
+    t2Steps: string[];
+    t2Note: string;
+    t3Tag: string;
+    t3Title: string;
+    t3Steps: string[];
+    t3Note: string;
+    t3Cta: string;
+    videoCredit: string;
+    backToHunt: string;
+  };
   crate: {
     title: string;
     empty: string;
@@ -169,6 +190,14 @@ export function detectLocale(): Locale {
 
 export function persistLocale(locale: Locale) {
   window.localStorage.setItem(LANG_KEY, locale);
+  window.dispatchEvent(new CustomEvent("stickersync:localechange", { detail: locale }));
+}
+
+/** Subscribe to locale changes (switched from any component). Returns unsubscribe. */
+export function onLocaleChange(cb: (locale: Locale) => void): () => void {
+  const handler = (e: Event) => cb((e as CustomEvent).detail as Locale);
+  window.addEventListener("stickersync:localechange", handler);
+  return () => window.removeEventListener("stickersync:localechange", handler);
 }
 
 export const dict: Record<Locale, Dict> = {
@@ -278,6 +307,39 @@ export const dict: Record<Locale, Dict> = {
       toastCopied: "Copied — paste (Ctrl+V) into any chat",
       toastSaved: "Saved — open the file to add it",
       toastWASaved: "Saved — open it and WhatsApp adds it to your tray",
+    },
+    tutorials: {
+      tag: "Tutorials",
+      title: "From file to sticker.\nFast.",
+      lead: "Three ways to get your downloaded stickers into your chats — pick whatever fits you.",
+      t1Tag: "WhatsApp · easiest",
+      t1Title: "Import the pack to your tray",
+      t1Steps: [
+        "Install Sticker Maker — free, one time",
+        "Open the .wastickers file you exported → share it to Sticker Maker",
+        "Tap \"Add to WhatsApp\" — every sticker in the pack lands in your tray at once",
+      ],
+      t1Note: "Best for crate exports: many stickers, one import.",
+      t1Cta: "Export your crate",
+      t2Tag: "WhatsApp · no apps",
+      t2Title: "The sticker-overwrite trick",
+      t2Steps: [
+        "Ask a friend to send you any sticker in chat — WhatsApp saves its .webp file",
+        "Download your sticker (.webp), rename it to that exact file name, replace the file in WhatsApp Stickers folder",
+        "Clear WhatsApp cache (Settings → Apps → WhatsApp → Storage → Clear cache) — the old sticker now plays yours",
+      ],
+      t2Note: "Manual hack — free and app-less, but per-sticker and can reset when WhatsApp re-syncs.",
+      t3Tag: "Any chat · instant",
+      t3Title: "Telegram, Discord & desktop",
+      t3Steps: [
+        "Tap Get → the share sheet opens → pick Telegram or Discord — it arrives as a native sticker/file",
+        "On WhatsApp: send it, then tap the image → Forward — it becomes a reusable sticker",
+        "On desktop: Get copies it to your clipboard — paste (Ctrl+V) into any chat",
+      ],
+      t3Note: "Telegram treats .webp as a native sticker — zero extra steps.",
+      t3Cta: "Try the Get flow",
+      videoCredit: "Video: MysterioTV",
+      backToHunt: "Back to hunting",
     },
     crate: {
       title: "My crate",
@@ -563,7 +625,40 @@ export const dict: Record<Locale, Dict> = {
       toastSaved: "Tersimpan — buka filenya untuk dipakai",
       toastWASaved: "Tersimpan — dibuka langsung masuk tray stiker WhatsApp",
     },
-    crate: {
+    tutorials: {
+      tag: "Tutorial",
+      title: "Dari file jadi stiker.\nCepat.",
+      lead: "Tiga cara memasukkan stiker hasil download ke chat kamu — pilih yang paling pas.",
+      t1Tag: "WhatsApp · termudah",
+      t1Title: "Import pack ke tray stiker",
+      t1Steps: [
+        "Install Sticker Maker — gratis, sekali saja",
+        "Buka file .wastickers hasil export → share ke Sticker Maker",
+        "Tap \"Add to WhatsApp\" — semua stiker di pack masuk tray sekaligus",
+      ],
+      t1Note: "Paling pas untuk export crate: banyak stiker, sekali import.",
+      t1Cta: "Export crate kamu",
+      t2Tag: "WhatsApp · tanpa app",
+      t2Title: "Trik timpa stiker",
+      t2Steps: [
+        "Minta teman kirim stiker apa pun di chat — WhatsApp menyimpan file .webp-nya",
+        "Download stiker kamu (.webp), rename persis sama, timpa file di folder WhatsApp Stickers",
+        "Clear cache WhatsApp (Setelan → Aplikasi → WhatsApp → Penyimpanan → Hapus cache) — stiker lama kini memutar punyamu",
+      ],
+      t2Note: "Hack manual — gratis tanpa app, tapi per-stiker dan bisa ter-reset saat WhatsApp sinkron ulang.",
+      t3Tag: "Chat mana pun · instan",
+      t3Title: "Telegram, Discord & desktop",
+      t3Steps: [
+        "Tap Ambil → share sheet terbuka → pilih Telegram atau Discord — langsung jadi stiker/file native",
+        "Di WhatsApp: kirim, lalu tap gambar → Forward — jadi stiker yang bisa dipakai ulang",
+        "Di desktop: Ambil men-copy ke clipboard — paste (Ctrl+V) ke chat mana pun",
+      ],
+      t3Note: "Telegram memperlakukan .webp sebagai stiker native — tanpa langkah ekstra.",
+      t3Cta: "Coba alur Ambil",
+      videoCredit: "Video: MysterioTV",
+      backToHunt: "Kembali berburu",
+    },
+  crate: {
       title: "Crate-ku",
       empty: "Crate kamu masih kosong. Tap bookmark di stiker mana pun buat disimpan di sini — nanti export semuanya jadi satu pack WhatsApp.",
       addBtn: "Masukkan crate",

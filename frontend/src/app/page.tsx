@@ -137,7 +137,11 @@ export default function Landing() {
   }, []);
 
   const startCta = useCallback(() => {
-    router.push(getToken() ? "/app" : "/?signin=1");
+    if (getToken()) {
+      router.push("/app");
+    } else {
+      setAuthMode("signup"); // open Google-only modal directly — no redirect roundtrip
+    }
   }, [router]);
 
   const numLocale = locale === "id" ? "id-ID" : "en-US";
@@ -386,6 +390,42 @@ export default function Landing() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* ===== TUTORIALS TEASER ===== */}
+        <section className="reveal pb-24 md:pb-28">
+          <div className="grid gap-4 md:grid-cols-3">
+            <a
+              href="/tutorials"
+              className="group rounded-[20px] border border-white/5 bg-raised p-7 transition-all hover:-translate-y-1 hover:border-accent/25"
+            >
+              <span className="inline-flex rounded-full bg-accent-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[2px] text-accent">
+                {t.tutorials.t1Tag}
+              </span>
+              <p className="mt-3.5 font-display text-lg font-extrabold tracking-tight">{t.tutorials.t1Title}</p>
+              <p className="mt-1.5 text-xs text-white/40">{t.tutorials.t1Note}</p>
+            </a>
+            <a
+              href="/tutorials"
+              className="group rounded-[20px] border border-white/5 bg-raised p-7 transition-all hover:-translate-y-1 hover:border-accent-2/25"
+            >
+              <span className="inline-flex rounded-full bg-accent-2-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[2px] text-accent-2">
+                {t.tutorials.t2Tag}
+              </span>
+              <p className="mt-3.5 font-display text-lg font-extrabold tracking-tight">{t.tutorials.t2Title}</p>
+              <p className="mt-1.5 text-xs text-white/40">{t.tutorials.t2Note}</p>
+            </a>
+            <a
+              href="/tutorials"
+              className="group rounded-[20px] border border-white/5 bg-raised p-7 transition-all hover:-translate-y-1 hover:border-accent/25"
+            >
+              <span className="inline-flex rounded-full bg-accent-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-[2px] text-accent">
+                {t.tutorials.t3Tag}
+              </span>
+              <p className="mt-3.5 font-display text-lg font-extrabold tracking-tight">{t.tutorials.t3Title}</p>
+              <p className="mt-1.5 text-xs text-white/40">{t.tutorials.t3Note}</p>
+            </a>
           </div>
         </section>
 
@@ -639,6 +679,9 @@ export default function Landing() {
             </a>
             <a href="#faq" className="text-[13px] text-white/45 transition-colors hover:text-white">
               {t.nav.faq}
+            </a>
+            <a href="/tutorials" className="text-[13px] text-white/45 transition-colors hover:text-white">
+              {t.tutorials.tag}
             </a>
           </div>
         </div>

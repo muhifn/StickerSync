@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { BookmarkSimple, Check } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 
 interface CrateButtonProps {
   stickerId: string;
@@ -20,6 +20,7 @@ export const CrateButton = memo(function CrateButton({ stickerId, url, className
 
   useEffect(() => {
     setLocale(detectLocale());
+    return onLocaleChange((l) => setLocale(l));
   }, []);
 
   // load initial state (bulk endpoint would be nicer; fine for now)

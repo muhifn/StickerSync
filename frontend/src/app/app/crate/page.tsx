@@ -13,7 +13,7 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 import { Navbar } from "@/components/Navbar";
 
 interface CrateItem {
@@ -39,6 +39,10 @@ export default function CratePage() {
     const l = detectLocale();
     setLocale(l);
     setT(dict[l].crate);
+    return onLocaleChange((nl) => {
+      setLocale(nl);
+      setT(dict[nl].crate);
+    });
   }, []);
 
   // auth guard

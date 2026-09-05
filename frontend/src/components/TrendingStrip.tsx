@@ -3,7 +3,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Eye, DownloadSimple, ArrowRight } from "@phosphor-icons/react";
 import { API_BASE } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 
 export interface TrendingSticker {
   sticker_id: string;
@@ -117,6 +117,7 @@ export const TrendingStrip = memo(function TrendingStrip() {
 
   useEffect(() => {
     setLocale(detectLocale());
+    return onLocaleChange((l) => setLocale(l));
   }, []);
 
   useEffect(() => {

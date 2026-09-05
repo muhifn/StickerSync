@@ -121,6 +121,9 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
               <a href="#faq" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
                 {t.nav.faq}
               </a>
+              <a href="/tutorials" className="font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white">
+                {dict[locale].tutorials.tag}
+              </a>
             </div>
           )}
 
