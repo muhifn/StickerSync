@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, CaretRight, BookmarkSimple, ShareFat, FilePlus } from "@phosphor-icons/react";
-import { dict, detectLocale, onLocaleChange, persistLocale, type Locale } from "@/lib/i18n";
+import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
 import { Navbar } from "@/components/Navbar";
 import { TutorialVideo } from "@/components/TutorialVideo";
 
@@ -22,11 +22,26 @@ export default function TutorialsPage() {
     });
   }, []);
 
-  const switchLocale = (l: Locale) => {
-    persistLocale(l);
-    setLocale(l);
-    setT(dict[l].tutorials);
-  };
+  // scroll reveal — same pattern as landing (sections stay opacity:0 without this)
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    if (!els.length) return;
+    const ob = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("in");
+            ob.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.08 }
+    );
+    els.forEach((el) => ob.observe(el));
+    return () => ob.disconnect();
+  }, []);
+
+
 
   return (
     <div className="relative z-[1] min-h-[100dvh]">
@@ -36,22 +51,6 @@ export default function TutorialsPage() {
         <p className="section-tag">{t.tag}</p>
         <h1 className="section-h whitespace-pre-line">{t.title}</h1>
         <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.lead}</p>
-
-        {/* locale switch reminder (page-local, mirrors navbar) */}
-        <div className="mt-6 inline-flex items-center gap-1 rounded-full border border-white/10 p-0.5" role="group" aria-label="Language">
-          {(["en", "id"] as const).map((l) => (
-            <button
-              key={l}
-              onClick={() => switchLocale(l)}
-              aria-pressed={locale === l}
-              className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide transition-colors ${
-                locale === l ? "bg-white text-background" : "text-white/40 hover:text-white"
-              }`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
 
         {/* ===== T1: WA tray via Sticker Maker (video) ===== */}
         <section className="reveal mt-16 grid items-center gap-8 md:mt-20 md:grid-cols-2 md:gap-12">

@@ -12,6 +12,9 @@ import {
   HouseSimple,
   MagnifyingGlass,
   BookmarkSimple,
+  List,
+  X,
+  PlayCircle,
 } from "@phosphor-icons/react";
 import { getToken, clearSession, refreshBalance } from "@/lib/auth";
 import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
@@ -22,6 +25,7 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
   const [signedIn, setSignedIn] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState<"login" | "signup" | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +49,26 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
     }
   }, [refreshBal]);
 
+  // close mobile menu on outside click / Escape
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      // keep open when tapping the hamburger itself (it has its own toggle)
+      if (el.closest('[aria-label="Account menu"]') || el.closest('[aria-label="' + t.nav.menu + '"]')) return;
+      if (!el.closest(".fixed.inset-x-0")) setMobileOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [mobileOpen, t.nav.menu]);
+
   // close dropdown on outside click / Escape
   useEffect(() => {
     if (!menuOpen) return;
@@ -67,6 +91,7 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
   const switchLocale = (l: Locale) => {
     persistLocale(l);
     setLocale(l);
+    setMobileOpen(false);
   };
 
   // HARD navigation: clears all client state + guards, guarantees full page transition.
@@ -157,6 +182,17 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
                 <span className="hidden h-5 w-px bg-white/10 md:block" aria-hidden />
               </>
             )}
+            {/* Mobile hamburger (<lg) */}
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-expanded={mobileOpen}
+              aria-haspopup="menu"
+              aria-label={t.nav.menu}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors hover:border-white/30 hover:text-white lg:hidden"
+            >
+              {mobileOpen ? <X size={17} weight="bold" /> : <List size={17} weight="bold" />}
+            </button>
+
             {/* Language switch */}
             <div
               className="flex items-center gap-1 rounded-full border border-white/10 p-0.5"
@@ -235,6 +271,65 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
           </div>
         </div>
       </nav>
+
+      {/* Mobile dropdown panel (<lg) */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-x-0 top-[57px] z-40 border-b border-white/10 bg-[#0a0508]/97 backdrop-blur-xl lg:hidden"
+          role="menu"
+        >
+          <div className="mx-auto max-w-[1400px] px-5 py-4">
+            {variant === "landing" ? (
+              <div className="flex flex-col">
+                {[
+                  { href: "#how", label: t.nav.howItWorks },
+                  { href: "#pricing", label: t.nav.pricing },
+                  { href: "#safety", label: t.nav.safety },
+                  { href: "#faq", label: t.nav.faq },
+                  { href: "/tutorials", label: dict[locale].tutorials.tag },
+                ].map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="border-b border-white/5 py-3.5 text-sm font-medium text-white/70 transition-colors last:border-0 hover:text-white"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                <a
+                  href="/app/crate"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2.5 border-b border-white/5 py-3.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+                >
+                  <BookmarkSimple size={15} /> {dict[locale].crate.title}
+                </a>
+                <a
+                  href="/tutorials"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2.5 border-b border-white/5 py-3.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+                >
+                  <PlayCircle size={15} /> {dict[locale].tutorials.tag}
+                </a>
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileOpen(false);
+                    goHome();
+                  }}
+                  className="flex items-center gap-2.5 py-3.5 text-sm font-medium text-white/70 transition-colors hover:text-white"
+                >
+                  <HouseSimple size={15} /> {t.nav.backHome}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {authOpen && AuthModal && (
         <AuthModal
