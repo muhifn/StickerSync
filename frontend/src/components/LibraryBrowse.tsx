@@ -14,6 +14,7 @@ import {
 import { API_BASE } from "@/lib/auth";
 import { dict, detectLocale, type Locale } from "@/lib/i18n";
 import { useViewPing, type TrendingSticker } from "@/components/TrendingStrip";
+import { CrateButton } from "@/components/CrateButton";
 
 interface LibRow extends TrendingSticker {
   created_at: string;
@@ -126,6 +127,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
               onMouseEnter={() => onView(s.sticker_id)}
             >
               <div className="relative aspect-square bg-background">
+                <CrateButton stickerId={s.sticker_id} url={s.url} className="absolute right-2.5 top-2.5 z-10" />
                 <img
                   src={s.url}
                   alt="Sticker"

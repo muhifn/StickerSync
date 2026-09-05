@@ -11,6 +11,7 @@ import {
   SignOut,
   HouseSimple,
   MagnifyingGlass,
+  BookmarkSimple,
 } from "@phosphor-icons/react";
 import { getToken, clearSession, refreshBalance } from "@/lib/auth";
 import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
@@ -123,16 +124,24 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
           )}
 
           {variant === "app" && (
-            <a
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                goHome();
-              }}
-              className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
-            >
-              <HouseSimple size={14} /> {t.nav.backHome}
-            </a>
+            <>
+              <a
+                href="/app/crate"
+                className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
+              >
+                <BookmarkSimple size={14} /> {dict[locale].crate.title}
+              </a>
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  goHome();
+                }}
+                className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
+              >
+                <HouseSimple size={14} /> {t.nav.backHome}
+              </a>
+            </>
           )}
 
           <div className="flex items-center gap-3">

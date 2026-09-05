@@ -97,6 +97,24 @@ export interface Dict {
     toastSaved: string;
     toastWASaved: string;
   };
+  crate: {
+    title: string;
+    empty: string;
+    addBtn: string;
+    added: string;
+    ownedBadge: string;
+    wishlistBadge: string;
+    expiredBadge: string;
+    exportBtn: string;
+    exportCost: string;
+    exportFree: string;
+    remove: string;
+    rescanHint: string;
+    capNote: string;
+    waStep1: string;
+    waStep2: string;
+    waStep3: string;
+  };
   howTag: string;
   how: { title: string; steps: HowStep[] };
   vsTag: string;
@@ -260,6 +278,24 @@ export const dict: Record<Locale, Dict> = {
       toastCopied: "Copied — paste (Ctrl+V) into any chat",
       toastSaved: "Saved — open the file to add it",
       toastWASaved: "Saved — open it and WhatsApp adds it to your tray",
+    },
+    crate: {
+      title: "My crate",
+      empty: "Your crate is empty. Tap the bookmark on any sticker to save it here — export them all as one WhatsApp pack later.",
+      addBtn: "Add to crate",
+      added: "In crate ✓",
+      ownedBadge: "Owned",
+      wishlistBadge: "Wishlist",
+      expiredBadge: "Expired — re-scan",
+      exportBtn: "Export WA pack",
+      exportCost: "new",
+      exportFree: "owned · free",
+      remove: "Remove",
+      rescanHint: "This sticker's link expired. Re-scan its video to refresh it.",
+      capNote: "Up to 200 stickers.",
+      waStep1: "Install Sticker Maker (free, one time)",
+      waStep2: "Open the downloaded .wastickers file → share it to Sticker Maker",
+      waStep3: "Tap \"Add to WhatsApp\" — all stickers land in your tray at once",
     },
     howTag: "How it works",
     how: {
@@ -526,6 +562,24 @@ export const dict: Record<Locale, Dict> = {
       toastCopied: "Tercopy — paste (Ctrl+V) ke chat mana pun",
       toastSaved: "Tersimpan — buka filenya untuk dipakai",
       toastWASaved: "Tersimpan — dibuka langsung masuk tray stiker WhatsApp",
+    },
+    crate: {
+      title: "Crate-ku",
+      empty: "Crate kamu masih kosong. Tap bookmark di stiker mana pun buat disimpan di sini — nanti export semuanya jadi satu pack WhatsApp.",
+      addBtn: "Masukkan crate",
+      added: "Sudah di crate ✓",
+      ownedBadge: "Milik kamu",
+      wishlistBadge: "Wishlist",
+      expiredBadge: "Kedaluwarsa — scan ulang",
+      exportBtn: "Export pack WA",
+      exportCost: "baru",
+      exportFree: "milik · gratis",
+      remove: "Hapus",
+      rescanHint: "Link stiker ini sudah kedaluwarsa. Scan ulang videonya biar fresh lagi.",
+      capNote: "Maksimal 200 stiker.",
+      waStep1: "Install Sticker Maker (gratis, sekali saja)",
+      waStep2: "Buka file .wastickers yang terdownload → share ke Sticker Maker",
+      waStep3: "Tap \"Add to WhatsApp\" — semua stiker masuk tray sekaligus",
     },
     howTag: "Cara pakai",
     how: {

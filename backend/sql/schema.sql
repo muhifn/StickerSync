@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS download_log (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     sticker_id TEXT NOT NULL,
-    source TEXT NOT NULL CHECK (source IN ('free','pool','private')),
+    source TEXT NOT NULL CHECK (source IN ('free','pool','private','export')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_download_log_created ON download_log (created_at DESC);
@@ -70,6 +70,19 @@ CREATE TABLE IF NOT EXISTS view_log (
 );
 CREATE INDEX IF NOT EXISTS idx_view_log_created ON view_log (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_view_log_sticker ON view_log (sticker_id);
+
+-- 5c. Crate: per-user sticker collection (wishlist snapshot; ownership proven
+--     via download_log — no credits stored here)
+CREATE TABLE IF NOT EXISTS crate (
+    user_id UUID NOT NULL REFERENCES users(id),
+    sticker_id TEXT NOT NULL,
+    url TEXT NOT NULL,               -- snapshot: TikTok CDN url (privacy: no author/comment stored)
+    urls JSONB NOT NULL DEFAULT '[]', -- snapshot: fallback urls
+    is_animated BOOLEAN NOT NULL DEFAULT TRUE,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, sticker_id)
+);
+CREATE INDEX IF NOT EXISTS idx_crate_user ON crate (user_id);
 
 -- 6. Referral rewards log (idempotent)
 CREATE TABLE IF NOT EXISTS referral_rewards (

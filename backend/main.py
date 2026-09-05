@@ -18,6 +18,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 import auth
+import crate as crate_mod
 import db
 import library as lib
 
@@ -655,6 +656,33 @@ async def me(user: dict = Depends(current_user)):
     }
 
 
+async def _get_sticker_bytes(sticker_id: str, urls: list[str]) -> bytes:
+    """L1 cache -> fetch+process (SSRF-validated urls). Raises 404/502."""
+    processed = lru_get(sticker_id)
+    if processed is None:
+        try:
+            processed = await download_and_process(validate_fetch_urls(urls))
+            lru_put(sticker_id, processed)
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(
+                status_code=502,
+                detail="Sticker link expired. Re-scan the video and try again.",
+            )
+    return processed
+
+
+async def _resolve_urls(sticker_id: str, sticker_url: Optional[str]) -> list[str]:
+    """L2 library urls -> param fallback. Raises 404 when neither exists."""
+    cached_urls = await lib.library_get_cached(sticker_id)
+    if cached_urls and cached_urls.get("urls"):
+        return cached_urls["urls"]
+    if sticker_url:
+        return validate_fetch_urls([sticker_url])
+    raise HTTPException(status_code=404, detail="Sticker not found. Re-scan the video first.")
+
+
 @app.post("/download/{sticker_id}")
 async def download_sticker(
     sticker_id: str,
@@ -664,52 +692,41 @@ async def download_sticker(
     sticker_url: Optional[str] = Query(None),
     user: dict = Depends(current_user),
 ):
-    """Spend order: free -> pool race -> private. L1 cache hit skips spend? NO —
-    every download costs 1 credit regardless of cache (cache saves TIME, not CREDITS)."""
+    """Charge: 1 credit per NEW sticker. Stickers this user already paid for
+    (proven via download_log) are re-served FREE — buy once, own forever."""
     rate_limit_download(request.client.host if request else "local")
     sticker_id = sanitize_sticker_id(sticker_id)
     uid = user["sub"]
 
-    # 1. Charge FIRST (atomic) — prevents free downloads via race
-    source = await db.fetch_val("SELECT spend_credit($1)", uid)
-    if source == "empty":
-        raise HTTPException(
-            status_code=402,
-            detail="No credits left. Free downloads used up and the world pool is dry — top-up coming soon.",
-        )
-    if source is None:
-        raise HTTPException(status_code=500, detail="Spend failed")
+    # 0. Ownership: skip charge if previously paid
+    owned = await crate_mod.is_owned(uid, sticker_id)
+    if owned:
+        source = "owned"
+    else:
+        # 1. Charge FIRST (atomic) — prevents free downloads via race
+        source = await db.fetch_val("SELECT spend_credit($1)", uid)
+        if source == "empty":
+            raise HTTPException(
+                status_code=402,
+                detail="No credits left. Free downloads used up and the world pool is dry — top-up coming soon.",
+            )
+        if source is None:
+            raise HTTPException(status_code=500, detail="Spend failed")
 
     # ensure user row exists (spend_credit grants lazily via users table FK)
-    # 2. Get bytes: L1 -> fetch
-    processed = lru_get(sticker_id)
-    if processed is None:
-        # try L2 library
-        cached_urls = await lib.library_get_cached(sticker_id)
-        urls = None
-        if cached_urls:
-            urls = cached_urls["urls"]
-        if not urls and sticker_url:
-            urls = validate_fetch_urls([sticker_url])
-        if not urls:
-            raise HTTPException(status_code=404, detail="Sticker not found. Re-scan the video first.")
-        try:
-            processed = await download_and_process(validate_fetch_urls(urls))
-            lru_put(sticker_id, processed)
-        except Exception:
-            raise HTTPException(
-                status_code=502,
-                detail="Sticker link expired. Re-scan the video and try again.",
-            )
+    # 2. Get bytes
+    urls = await _resolve_urls(sticker_id, sticker_url)
+    processed = await _get_sticker_bytes(sticker_id, urls)
 
-    # 3. Background: audit log
+    # 3. Background: audit log (ownership proof for future free re-serves)
     background.add_task(lib.log_download, uid, sticker_id, source)
 
+    headers = {"X-Charged": "0" if owned else "1"}
     if format == "webp":
         return StreamingResponse(
             io.BytesIO(processed),
             media_type="image/webp",
-            headers={"Content-Disposition": f'attachment; filename="{sticker_id}.webp"'},
+            headers={**headers, "Content-Disposition": f'attachment; filename="{sticker_id}.webp"'},
         )
 
     pack = build_pack([(sticker_id, processed)], sticker_id)
@@ -717,7 +734,7 @@ async def download_sticker(
     return StreamingResponse(
         io.BytesIO(pack),
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{sticker_id}.{ext}"'},
+        headers={**headers, "Content-Disposition": f'attachment; filename="{sticker_id}.{ext}"'},
     )
 
 
@@ -845,3 +862,114 @@ async def library_browse(
     items, total = await lib.library_page(q=q.strip(), sort=sort, page=page, per_page=per_page)
     pages = max(1, -(-total // per_page))
     return {"stickers": items, "total": total, "page": page, "pages": pages}
+
+
+# ============ CRATE (per-user collection) ============
+
+class CrateAddRequest(BaseModel):
+    sticker_id: str
+    url: str
+    urls: list[str] = []
+    is_animated: bool = True
+
+
+class CrateExportRequest(BaseModel):
+    sticker_ids: list[str]
+
+
+async def _ensure_user_row(uid: str) -> None:
+    """Lazy user row (FK target for crate) — same pattern as /me."""
+    row = await db.fetch_one("SELECT 1 FROM users WHERE id = $1", uid)
+    if not row:
+        await db.fetch_val("SELECT grant_signup_credits($1, NULL)", uid)
+
+
+@app.post("/crate/add")
+async def crate_add(req: CrateAddRequest, user: dict = Depends(current_user)):
+    """Add sticker snapshot to my crate (wishlist). Free; owned badge auto-derived."""
+    uid = user["sub"]
+    await _ensure_user_row(uid)
+    req.sticker_id = sanitize_sticker_id(req.sticker_id)
+    try:
+        urls = validate_fetch_urls(req.urls if req.urls else [req.url])
+    except HTTPException:
+        urls = []
+    if not urls:
+        raise HTTPException(status_code=400, detail="Invalid sticker URL")
+    result = await crate_mod.crate_add(uid, req.sticker_id, req.url, req.urls, req.is_animated)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Could not add"))
+    return {"ok": True, "duplicate": result.get("duplicate", False)}
+
+
+@app.post("/crate/remove")
+async def crate_remove(req: CrateAddRequest, user: dict = Depends(current_user)):
+    uid = user["sub"]
+    req.sticker_id = sanitize_sticker_id(req.sticker_id)
+    await crate_mod.crate_remove(uid, req.sticker_id)
+    return {"ok": True}
+
+
+@app.get("/crate")
+async def crate_list(user: dict = Depends(current_user)):
+    """My crate: snapshots + owned/fresh status."""
+    uid = user["sub"]
+    items = await crate_mod.crate_list(uid)
+    return {"stickers": items, "count": len(items), "limit": crate_mod.CRATE_LIMIT}
+
+
+@app.post("/crate/export")
+async def crate_export(req: CrateExportRequest, request: Request, user: dict = Depends(current_user)):
+    """Build .wastickers pack from selected crate stickers.
+    Charge: 1 credit per NOT-owned sticker (owned = free re-export)."""
+    rate_limit_download(request.client.host if request else "local")
+    uid = user["sub"]
+    if not req.sticker_ids:
+        raise HTTPException(status_code=400, detail="No stickers selected")
+    if len(req.sticker_ids) > 30:
+        raise HTTPException(status_code=400, detail="Max 30 stickers per pack")
+
+    charged = 0
+    free = 0
+    # 1. charge for not-owned stickers (atomic, per sticker)
+    for sid in req.sticker_ids:
+        sid = sanitize_sticker_id(sid)
+        if await crate_mod.is_owned(uid, sid):
+            free += 1
+            continue
+        source = await db.fetch_val("SELECT spend_credit($1)", uid)
+        if source == "empty":
+            raise HTTPException(
+                status_code=402,
+                detail=f"Ran out of credits after {charged} charged — export needs {len(req.sticker_ids) - charged - free} more.",
+            )
+        charged += 1
+
+    async def fetch_bytes(sticker_id: str, urls: list[str]) -> Optional[bytes]:
+        try:
+            return await _get_sticker_bytes(sticker_id, urls)
+        except HTTPException:
+            return None
+
+    result = await crate_mod.crate_export(uid, req.sticker_ids, fetch_bytes)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Export failed"))
+
+    # 2. audit log for newly charged stickers (ownership proof)
+    for sid in req.sticker_ids:
+        sid = sanitize_sticker_id(sid)
+        if not await crate_mod.is_owned(uid, sid):
+            await db.execute(
+                "INSERT INTO download_log (user_id, sticker_id, source) VALUES ($1,$2,$3)",
+                uid, sid, "export",
+            )
+
+    return StreamingResponse(
+        io.BytesIO(result["zip"]),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="stickersync-pack-{int(time.time())}.wastickers"',
+            "X-Charged": str(charged),
+            "X-Free": str(free),
+        },
+    )

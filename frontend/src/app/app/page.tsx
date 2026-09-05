@@ -18,6 +18,7 @@ import { dict, detectLocale, type Locale } from "@/lib/i18n";
 import { AuthModal } from "@/components/AuthModal";
 import { Navbar } from "@/components/Navbar";
 import { LibraryBrowse } from "@/components/LibraryBrowse";
+import { CrateButton } from "@/components/CrateButton";
 
 interface Sticker {
   id: string;
@@ -372,6 +373,7 @@ export default function AppPage() {
                           Animated
                         </span>
                       )}
+                      <CrateButton stickerId={sticker.id} url={sticker.url} className="absolute right-2.5 top-2.5" />
                     </div>
                     <div className="px-1.5 pb-1 pt-3">
                       <div className="mt-3.5 flex gap-1.5">
