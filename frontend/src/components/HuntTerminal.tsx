@@ -5,8 +5,6 @@ import { API_BASE } from "@/lib/auth";
 import { dict, detectLocale, type Locale } from "@/lib/i18n";
 
 interface ActivityEvent {
-  comment_text: string;
-  author_uid: string;
   ago: string;
 }
 
@@ -50,7 +48,7 @@ export const HuntTerminal = memo(function HuntTerminal() {
     evts.slice(0, 8).forEach((e, i) => {
       lines.push({
         kind: "download",
-        text: `"${(e.comment_text || "a sticker").slice(0, 34)}" grabbed by @${e.author_uid || "unknown"} — ${e.ago}`,
+        text: `a sticker grabbed by a hunter — ${e.ago}`,
         ts: now(),
       });
       // every 3rd event: a SCAN line + progress + SYNC line

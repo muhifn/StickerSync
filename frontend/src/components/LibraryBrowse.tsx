@@ -128,7 +128,7 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
               <div className="relative aspect-square bg-background">
                 <img
                   src={s.url}
-                  alt={`Sticker by @${s.author_uid}`}
+                  alt="Sticker"
                   className="h-full w-full object-contain"
                   loading="lazy"
                 />
@@ -143,10 +143,6 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
                 </span>
               </div>
               <div className="p-3.5">
-                {s.comment_text && (
-                  <p className="truncate text-xs text-white/50">&ldquo;{s.comment_text}&rdquo;</p>
-                )}
-                <p className="mt-0.5 truncate text-sm font-semibold text-white/85">@{s.author_uid}</p>
                 <div className="mt-3 flex gap-1.5">
                   <button
                     onClick={() => onDownload(s, "webp")}

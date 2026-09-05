@@ -7,8 +7,6 @@ import { dict, detectLocale, type Locale } from "@/lib/i18n";
 
 export interface TrendingSticker {
   sticker_id: string;
-  comment_text: string;
-  author_uid: string;
   url: string;
   is_animated: boolean;
   download_count: number;
@@ -79,7 +77,7 @@ const Card = memo(function Card({
       <div className="relative aspect-square overflow-hidden bg-[#0d0d0d]">
         <img
           src={s.url}
-          alt={`Sticker by @${s.author_uid}`}
+          alt="Sticker"
           className="h-full w-full object-contain"
           loading="lazy"
         />
@@ -95,10 +93,6 @@ const Card = memo(function Card({
         </span>
       </div>
       <div className="p-3.5">
-        {s.comment_text && (
-          <p className="truncate text-xs text-white/50">&ldquo;{s.comment_text}&rdquo;</p>
-        )}
-        <p className="mt-0.5 truncate text-sm font-semibold text-white/85">@{s.author_uid}</p>
         <div className="mt-2.5 flex items-center gap-3 text-[11px] text-white/40">
           <span className="flex items-center gap-1">
             <Eye size={12} weight="bold" className="text-accent" />

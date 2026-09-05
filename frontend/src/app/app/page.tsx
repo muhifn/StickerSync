@@ -26,10 +26,6 @@ interface Sticker {
   height: number;
   is_animated: boolean;
   url: string;
-  author: string;
-  author_uid: string;
-  comment_text: string;
-  comment_likes: number;
 }
 
 interface FetchResult {
@@ -367,7 +363,7 @@ export default function AppPage() {
                     <div className="relative aspect-square overflow-hidden rounded-[1.4rem] bg-background">
                       <img
                         src={sticker.url}
-                        alt={`Sticker posted by @${sticker.author_uid}`}
+                        alt="Sticker"
                         className="h-full w-full object-contain"
                         loading="lazy"
                       />
@@ -378,12 +374,6 @@ export default function AppPage() {
                       )}
                     </div>
                     <div className="px-1.5 pb-1 pt-3">
-                      {sticker.comment_text && (
-                        <p className="truncate text-xs text-white/50">&ldquo;{sticker.comment_text}&rdquo;</p>
-                      )}
-                      <p className="mt-0.5 truncate text-sm font-semibold text-white/85">
-                        @{sticker.author_uid || sticker.author}
-                      </p>
                       <div className="mt-3.5 flex gap-1.5">
                         <button
                           onClick={() => handleGet(sticker)}

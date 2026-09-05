@@ -131,9 +131,10 @@ async def log_view(sticker_id: str) -> None:
 
 
 async def trending_stickers(limit: int = 12) -> list[dict]:
-    """Trending: views_72h + downloads_72h*3, only non-expired URLs."""
+    """Trending: views_72h + downloads_72h*3, only non-expired URLs.
+    PRIVACY: no comment text / author identity in public responses."""
     rows = await db.fetch_all("""
-        SELECT l.sticker_id, l.comment_text, l.author_uid, l.url,
+        SELECT l.sticker_id, l.url,
                l.is_animated, l.download_count, l.view_count,
                COALESCE(v.cnt, 0)  AS views_72h,
                COALESCE(d.cnt, 0)  AS downloads_72h,
@@ -172,7 +173,7 @@ async def library_page(
     offset = (page - 1) * per_page
     args2 = args + [per_page, offset]
     rows = await db.fetch_all(f"""
-        SELECT sticker_id, comment_text, author_uid, url, is_animated,
+        SELECT sticker_id, url, is_animated,
                download_count, view_count, created_at
         FROM library
         WHERE {where}

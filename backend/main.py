@@ -332,10 +332,6 @@ def extract_stickers(comments: list[dict], username: Optional[str] = None) -> li
             "is_animated": bool(animated.get("high_resolution_url")),
             "url": urls[0],
             "urls": urls,
-            "author": nickname,
-            "author_uid": uid,
-            "comment_text": c.get("text", ""),
-            "comment_likes": c.get("digg_count", 0),
         })
     return stickers
 
@@ -752,10 +748,9 @@ async def activity():
         return {"events": cached}
 
     rows = await db.fetch_all("""
-        SELECT l.comment_text, l.author_uid, d.created_at,
+        SELECT d.created_at,
                (now() - d.created_at) AS age
         FROM download_log d
-        JOIN library l ON l.sticker_id = d.sticker_id
         ORDER BY d.created_at DESC
         LIMIT 8
     """)
@@ -771,8 +766,6 @@ async def activity():
         else:
             ago = f"{age_s // 86400}d ago"
         events.append({
-            "comment_text": (r["comment_text"] or "")[:60],
-            "author_uid": r["author_uid"] or "",
             "ago": ago,
         })
     _activity_cache["v"] = (now, events)
