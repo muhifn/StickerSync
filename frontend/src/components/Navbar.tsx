@@ -98,7 +98,8 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
         className="sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl"
         style={{ background: "rgba(3,3,3,0.8)" }}
       >
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-3.5 md:px-10">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-5 py-3.5 md:px-10">
+          {/* ZONE 1: logo left */}
           <a href="/" className="group inline-flex items-center font-display text-xl font-extrabold tracking-tight">
             Sticker
             <span className="ml-0.5 inline-block -rotate-3 rounded-md border-2 border-white/90 bg-white/5 px-1.5 py-0.5 transition-transform group-hover:rotate-0">
@@ -123,28 +124,36 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
             </div>
           )}
 
-          {variant === "app" && (
-            <>
-              <a
-                href="/app/crate"
-                className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
-              >
-                <BookmarkSimple size={14} /> {dict[locale].crate.title}
-              </a>
-              <a
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  goHome();
-                }}
-                className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
-              >
-                <HouseSimple size={14} /> {t.nav.backHome}
-              </a>
-            </>
-          )}
-
-          <div className="flex items-center gap-3">
+          {/* ZONE 2: everything right — app links + controls in ONE grouped cluster */}
+          <div className="ml-auto flex items-center gap-3 md:gap-5">
+            {variant === "app" && (
+              <>
+                {/* crate: icon-only on mobile, full label on desktop */}
+                <a
+                  href="/app/crate"
+                  title={dict[locale].crate.title}
+                  aria-label={dict[locale].crate.title}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white/45 transition-colors hover:bg-white/5 hover:text-white lg:h-auto lg:w-auto lg:bg-transparent"
+                >
+                  <BookmarkSimple size={16} className="lg:hidden" />
+                  <span className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex">
+                    <BookmarkSimple size={14} /> {dict[locale].crate.title}
+                  </span>
+                </a>
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    goHome();
+                  }}
+                  className="hidden items-center gap-1.5 font-body text-[13px] font-medium text-white/45 transition-colors hover:text-white lg:flex"
+                >
+                  <HouseSimple size={14} /> {t.nav.backHome}
+                </a>
+                {/* divider: nav links | account controls */}
+                <span className="hidden h-5 w-px bg-white/10 md:block" aria-hidden />
+              </>
+            )}
             {/* Language switch */}
             <div
               className="flex items-center gap-1 rounded-full border border-white/10 p-0.5"
