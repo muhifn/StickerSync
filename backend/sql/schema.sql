@@ -189,3 +189,39 @@ REVOKE EXECUTE ON FUNCTION public.rls_auto_enable()                 FROM anon, a
 -- 3) Prevent future auto-grants to PostgREST roles
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated, PUBLIC;
+
+-- ============ PAYMENTS (InstanPay QRIS — pay.instanlive.id) ============
+CREATE TABLE IF NOT EXISTS payments (
+    trx_id TEXT PRIMARY KEY,              -- InstanPay txn_id (idempotency key)
+    user_id UUID NOT NULL REFERENCES users(id),
+    package TEXT NOT NULL,                 -- starter | bundle | custom
+    amount INT NOT NULL,                   -- unique_amount dibayar customer
+    credits INT NOT NULL,
+    pool_drops INT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','SUCCESS','CANCELED','EXPIRED','REFUNDED')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    paid_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments (user_id, created_at DESC);
+
+-- Atomic idempotent purchase apply (row-locked; double-call safe)
+CREATE OR REPLACE FUNCTION apply_purchase(p_trx_id TEXT)
+RETURNS TEXT AS $$
+DECLARE
+    row RECORD;
+BEGIN
+    SELECT * INTO row FROM payments WHERE trx_id = p_trx_id FOR UPDATE;
+    IF NOT FOUND THEN RETURN 'not_found'; END IF;
+    IF row.status = 'SUCCESS' THEN RETURN 'already_applied'; END IF;
+
+    UPDATE users SET
+        private_credits = private_credits + row.credits,
+        is_purchaser = TRUE
+    WHERE id = row.user_id;
+
+    UPDATE world_pool SET pool = pool + row.pool_drops, updated_at = now() WHERE id = 1;
+
+    UPDATE payments SET status = 'SUCCESS', paid_at = now() WHERE trx_id = p_trx_id;
+    RETURN 'applied';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

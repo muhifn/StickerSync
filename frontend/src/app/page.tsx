@@ -539,9 +539,6 @@ export default function Landing() {
 
             {/* Starter — soon */}
             <div className="relative flex flex-col p-9 md:p-10">
-              <span className="absolute right-5 top-5 rounded-md bg-warn-soft px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">
-                {t.pricing.soon}
-              </span>
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
                 {t.pricing.starter.name}
               </p>
@@ -560,8 +557,8 @@ export default function Landing() {
                 ))}
               </ul>
               <button
-                disabled
-                className="mt-9 block w-full cursor-not-allowed rounded-full border border-white/10 bg-background px-5 py-3.5 font-body text-[15px] font-extrabold text-white/30"
+                onClick={startCta}
+                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 {t.pricing.starter.cta}
               </button>
@@ -571,9 +568,6 @@ export default function Landing() {
             <div className="relative flex flex-col bg-[#07120c] p-9 ring-1 ring-inset ring-accent/25 md:p-10">
               <span className="absolute right-5 top-5 rounded-md bg-accent px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent-fg">
                 {t.pricing.popular}
-              </span>
-              <span className="absolute right-5 top-11 mt-3 rounded-md bg-warn-soft px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-white/50">
-                {t.pricing.soon}
               </span>
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
                 {t.pricing.bundle.name}
@@ -593,8 +587,8 @@ export default function Landing() {
                 ))}
               </ul>
               <button
-                disabled
-                className="mt-9 block w-full cursor-not-allowed rounded-full border border-white/10 bg-background px-5 py-3.5 font-body text-[15px] font-extrabold text-white/30"
+                onClick={startCta}
+                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 {t.pricing.bundle.cta}
               </button>

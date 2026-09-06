@@ -18,6 +18,7 @@ import { dict, detectLocale, type Locale } from "@/lib/i18n";
 import { AuthModal } from "@/components/AuthModal";
 import { Navbar } from "@/components/Navbar";
 import { LibraryBrowse } from "@/components/LibraryBrowse";
+import { TopUpModal } from "@/components/TopUpModal";
 import { CrateButton } from "@/components/CrateButton";
 
 interface Sticker {
@@ -442,32 +443,12 @@ export default function AppPage() {
         </div>
       )}
 
-      {/* Top-up modal (payment stub) */}
+      {/* Top-up modal (InstanPay QRIS) */}
       {showTopUp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setShowTopUp(false)}>
-          <div
-            className="w-full max-w-sm rounded-[24px] border border-white/10 bg-raised p-7 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.9)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <Coins size={28} weight="fill" className="text-accent" />
-              <button onClick={() => setShowTopUp(false)} aria-label="Close" className="text-muted hover:text-foreground">
-                <X size={20} />
-              </button>
-            </div>
-            <h3 className="mt-3 font-display text-xl font-bold tracking-tight">Out of credits</h3>
-            <p className="mt-2 font-body text-sm leading-relaxed text-muted">
-              Top-ups are coming very soon — Rp 500 for 2 credits, and every purchase drops
-              a bonus credit into the world pool for everyone.
-            </p>
-            <div className="mt-5 rounded-2xl bg-accent-soft p-4">
-              <p className="font-body text-sm font-semibold text-foreground">Meanwhile…</p>
-              <p className="mt-1 font-body text-sm leading-relaxed text-muted">
-                The world pool refills whenever someone buys. Check back soon and grab one before others do.
-              </p>
-            </div>
-          </div>
-        </div>
+        <TopUpModal
+          onClose={() => setShowTopUp(false)}
+          onPaid={refreshBalanceState}
+        />
       )}
 
       {authMode && (

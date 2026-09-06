@@ -21,6 +21,7 @@ import auth
 import crate as crate_mod
 import db
 import library as lib
+import payments as pay_mod
 
 app = FastAPI(title="StickerSync API", version="4.0.0")
 
@@ -973,3 +974,144 @@ async def crate_export(req: CrateExportRequest, request: Request, user: dict = D
             "X-Free": str(free),
         },
     )
+
+
+# ============ PAYMENTS (InstanPay QRIS) ============
+
+class PaymentCreateRequest(BaseModel):
+    package: str = Query("starter", regex="^(starter|bundle|custom)$")
+    custom_amount: Optional[int] = None
+
+
+# payments rate limit: 10 creates/min per IP
+_pay_buckets: dict[str, tuple[float, float]] = {}
+
+
+def rate_limit_payment(ip: str) -> None:
+    now = time.time()
+    tokens, last = _pay_buckets.get(ip, (10.0, now))
+    tokens = min(10.0, tokens + (now - last) * (10.0 / 60.0))
+    if tokens < 1.0:
+        raise HTTPException(status_code=429, detail="Too many payment attempts — wait a minute")
+    _pay_buckets[ip] = (tokens - 1.0, now)
+    if len(_pay_buckets) > 10_000:
+        cutoff = now - 120
+        for k in [k for k, v in _pay_buckets.items() if v[1] < cutoff]:
+            _pay_buckets.pop(k, None)
+
+
+@app.post("/payments/create")
+async def payments_create(req: PaymentCreateRequest, request: Request, user: dict = Depends(current_user)):
+    """Create a QRIS payment for a credit package. Returns QR + payment page URL."""
+    rate_limit_payment(request.client.host if request else "local")
+    uid = user["sub"]
+    await _ensure_user_row(uid)
+
+    try:
+        pkg = pay_mod.package_for(req.package, req.custom_amount)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    ref_id = pay_mod.new_ref_id()
+    try:
+        txn = await pay_mod.create_transaction(
+            ref_id, pkg["amount"], f"StickerSync {req.package} — {pkg['credits']} credits"
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    # persist locally (idempotent: ref_id unique)
+    try:
+        await db.execute("""
+            INSERT INTO payments (trx_id, user_id, package, amount, credits, pool_drops)
+            VALUES ($1,$2,$3,$4,$5,$6)
+        """, str(txn["txn_id"]), uid, req.package, txn.get("unique_amount") or pkg["amount"],
+             pkg["credits"], pkg["pool_drops"])
+    except Exception as e:
+        print(f"[payments_create] insert failed: {e}", flush=True)
+
+    return {
+        "txn_id": txn["txn_id"],
+        "package": req.package,
+        "amount": txn.get("unique_amount") or pkg["amount"],
+        "credits": pkg["credits"],
+        "pool_drops": pkg["pool_drops"],
+        "qr_string": txn.get("qris_string"),
+        "payment_url": txn.get("payment_url"),
+        "expires_in_minutes": txn.get("expired_in_minutes", 15),
+        "sandbox": pay_mod.is_sandbox(),
+    }
+
+
+@app.get("/payments/status/{txn_id}")
+async def payments_status(txn_id: int, user: dict = Depends(current_user)):
+    """Poll payment status. On paid → apply purchase (atomic idempotent)."""
+    uid = user["sub"]
+    row = await db.fetch_one(
+        "SELECT * FROM payments WHERE trx_id = $1", str(txn_id)
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if str(row["user_id"]) != str(uid):
+        raise HTTPException(status_code=403, detail="Not your transaction")
+
+    # already applied — no gateway call needed
+    if row["status"] == "SUCCESS":
+        return {"status": "paid", "applied": True, "credits": row["credits"]}
+
+    try:
+        txn = await pay_mod.check_status(txn_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    gw_status = txn.get("status")
+    if gw_status == "paid":
+        result = await db.fetch_val("SELECT apply_purchase($1)", str(txn_id))
+        return {"status": "paid", "applied": result == "applied", "credits": row["credits"]}
+    if gw_status in ("expired", "cancelled", "refunded"):
+        await db.execute(
+            "UPDATE payments SET status = $1 WHERE trx_id = $2 AND status = 'PENDING'",
+            gw_status.upper(), str(txn_id),
+        )
+        return {"status": gw_status, "applied": False, "credits": 0}
+    return {"status": gw_status or "pending", "applied": False, "credits": 0}
+
+
+@app.post("/payments/simulate/{txn_id}")
+async def payments_simulate(txn_id: int, user: dict = Depends(current_user)):
+    """Sandbox-only: mark transaction as paid (for testing the full flow)."""
+    if not pay_mod.is_sandbox():
+        raise HTTPException(status_code=403, detail="Simulate is sandbox-only")
+    uid = user["sub"]
+    row = await db.fetch_one("SELECT * FROM payments WHERE trx_id = $1", str(txn_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    if str(row["user_id"]) != str(uid):
+        raise HTTPException(status_code=403, detail="Not your transaction")
+    try:
+        await pay_mod.simulate_pay(txn_id)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    result = await db.fetch_val("SELECT apply_purchase($1)", str(txn_id))
+    return {"status": "paid", "applied": result == "applied", "credits": row["credits"]}
+
+
+@app.post("/payments/webhook")
+async def payments_webhook(request: Request):
+    """InstanPay callback. HMAC-verified; applies purchase on 'paid'.
+    Server-to-server — JWT not applicable; signature IS the auth."""
+    raw = await request.body()
+    sig = request.headers.get("X-Signature") or request.headers.get("x-signature")
+    if not pay_mod.verify_webhook_signature(raw, sig):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    txn_id = str(payload.get("txn_id"))
+    status = payload.get("status")
+    if status == "paid" and txn_id:
+        await db.fetch_val("SELECT apply_purchase($1)", txn_id)
+    return {"ok": True}

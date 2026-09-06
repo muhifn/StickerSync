@@ -97,6 +97,25 @@ export interface Dict {
     toastSaved: string;
     toastWASaved: string;
   };
+  payments: {
+    topupTitle: string;
+    starterName: string;
+    bundleName: string;
+    customName: string;
+    customLabel: string;
+    customHint: string;
+    creditsLabel: string;
+    poolDropLabel: string;
+    payTitle: string;
+    scanHint: string;
+    orPayPage: string;
+    pendingLabel: string;
+    successTitle: string;
+    successBody: string;
+    closeLabel: string;
+    sandboxNote: string;
+    expiryLabel: string;
+  };
   tutorials: {
     tag: string;
     title: string;
@@ -308,7 +327,26 @@ export const dict: Record<Locale, Dict> = {
       toastSaved: "Saved — open the file to add it",
       toastWASaved: "Saved — open it and WhatsApp adds it to your tray",
     },
-    tutorials: {
+    payments: {
+      topupTitle: "Top up credits",
+      starterName: "Starter — Rp 500",
+      bundleName: "Bundle — Rp 10.000",
+      customName: "Custom",
+      customLabel: "Custom amount (min Rp 500)",
+      customHint: "≈ 1 credit per Rp 250",
+      creditsLabel: "credits",
+      poolDropLabel: "pool drops",
+      payTitle: "Scan to pay",
+      scanHint: "Scan with any QRIS app — GoPay, OVO, DANA, ShopeePay, or mobile banking",
+      orPayPage: "Or pay on the InstanPay page",
+      pendingLabel: "Waiting for payment…",
+      successTitle: "Payment received!",
+      successBody: "Your credits have landed. Every purchase dropped bonus credits into the world pool for everyone.",
+      closeLabel: "Close",
+      sandboxNote: "SANDBOX MODE — payments are simulated, no real money",
+      expiryLabel: "expires in",
+    },
+  tutorials: {
       tag: "Tutorials",
       title: "From file to sticker.\nFast.",
       lead: "Three ways to get your downloaded stickers into your chats — pick whatever fits you.",
@@ -401,10 +439,10 @@ export const dict: Record<Locale, Dict> = {
     pricingTag: "Pricing",
     pricing: {
       title: "Start free.\nScale when hooked.",
-      lead: "No credit card required to start. Top-ups land soon.",
+      lead: "No credit card needed — pay with any QRIS app. Top-ups are live.",
       founderNote: "Founder pricing — lock in Rp 500 Starter / Rp 10.000 Bundle for life.",
       founderSub:
-        "Top-ups land soon via QRIS. Subscribe early and you're grandfathered at today's rate for as long as the site lives.",
+        "Pay via QRIS — GoPay, OVO, DANA, ShopeePay, or any mobile banking app. Founder pricing locked for as long as the site lives.",
       codeTag: "Referral code?",
       codeHint: "Apply at signup for bonus credits",
       soon: "Coming soon",
@@ -625,6 +663,25 @@ export const dict: Record<Locale, Dict> = {
       toastSaved: "Tersimpan — buka filenya untuk dipakai",
       toastWASaved: "Tersimpan — dibuka langsung masuk tray stiker WhatsApp",
     },
+    payments: {
+      topupTitle: "Isi credit",
+      starterName: "Starter — Rp 500",
+      bundleName: "Bundle — Rp 10.000",
+      customName: "Custom",
+      customLabel: "Nominal bebas (min Rp 500)",
+      customHint: "≈ 1 credit per Rp 250",
+      creditsLabel: "credit",
+      poolDropLabel: "tetesan pool",
+      payTitle: "Scan untuk bayar",
+      scanHint: "Scan dengan app QRIS apa pun — GoPay, OVO, DANA, ShopeePay, atau m-banking",
+      orPayPage: "Atau bayar di halaman InstanPay",
+      pendingLabel: "Menunggu pembayaran…",
+      successTitle: "Pembayaran diterima!",
+      successBody: "Credit kamu sudah masuk. Setiap pembelian meneteskan bonus credit ke world pool buat semua orang.",
+      closeLabel: "Tutup",
+      sandboxNote: "MODE SANDBOX — pembayaran disimulasikan, bukan uang nyata",
+      expiryLabel: "kedaluwarsa dalam",
+    },
     tutorials: {
       tag: "Tutorial",
       title: "Dari file jadi stiker.\nCepat.",
@@ -718,10 +775,10 @@ export const dict: Record<Locale, Dict> = {
     pricingTag: "Harga",
     pricing: {
       title: "Mulai gratis.\nNaikin kalau sudah ketagihan.",
-      lead: "Tanpa kartu kredit untuk mulai. Top-up segera hadir.",
+      lead: "Tanpa kartu kredit — bayar dengan app QRIS apa pun. Top-up sudah aktif.",
       founderNote: "Founder pricing — kunci Rp 500 Starter / Rp 10.000 Bundle selamanya.",
       founderSub:
-        "Top-up segera hadir via QRIS. Daftar lebih awal dan harga kamu terkunci selama site ini hidup.",
+        "Bayar via QRIS — GoPay, OVO, DANA, ShopeePay, atau m-banking apa pun. Founder pricing terkunci selama site ini hidup.",
       codeTag: "Kode referral?",
       codeHint: "Masukkan saat daftar untuk bonus credit",
       soon: "Segera hadir",
