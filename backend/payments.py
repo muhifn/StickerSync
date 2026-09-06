@@ -73,7 +73,8 @@ async def _request(method: str, path: str, json_body: Optional[dict] = None) -> 
         raise RuntimeError(f"Gateway returned non-JSON (HTTP {resp.status_code})")
     if resp.status_code >= 400 or not data.get("ok"):
         err = data.get("error") or f"HTTP {resp.status_code}"
-        raise RuntimeError(f"Gateway error: {err}")
+        detail = data.get("message") or ""
+        raise RuntimeError(f"Gateway error: {err}{' — ' + detail if detail else ''}")
     return data.get("data") or {}
 
 
