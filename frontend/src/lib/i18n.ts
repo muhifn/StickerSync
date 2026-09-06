@@ -174,11 +174,8 @@ export interface Dict {
     founderSub: string;
     codeTag: string;
     codeHint: string;
-    soon: string;
-    popular: string;
+    topup: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     free: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
-    starter: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
-    bundle: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     note: string;
   };
   safetyTag: string;
@@ -333,7 +330,7 @@ export const dict: Record<Locale, Dict> = {
       bundleName: "Bundle — Rp 10.000",
       customName: "Custom",
       customLabel: "Custom amount (min Rp 500)",
-      customHint: "≈ 1 credit per Rp 250",
+      customHint: "Rp 500 = 2 credits + 1 world pool drop",
       creditsLabel: "credits",
       poolDropLabel: "pool drops",
       payTitle: "Scan to pay",
@@ -445,8 +442,19 @@ export const dict: Record<Locale, Dict> = {
         "Pay via QRIS — GoPay, OVO, DANA, ShopeePay, or any mobile banking app. Founder pricing locked for as long as the site lives.",
       codeTag: "Referral code?",
       codeHint: "Apply at signup for bonus credits",
-      soon: "Coming soon",
-      popular: "Popular",
+      topup: {
+        name: "Top up",
+        price: "Any amount",
+        priceUnit: "",
+        desc: "Pay what you want — starting from Rp 500. Instant QRIS, credits land in seconds.",
+        items: [
+          "Rp 500 = 2 credits + 1 world pool drop",
+          "Min Rp 500, max Rp 100.000",
+          "Every top-up drops bonus credits into the world pool",
+          "Unlimited pool claims forever",
+        ],
+        cta: "Top up now",
+      },
       free: {
         name: "Free",
         price: "$0",
@@ -459,32 +467,6 @@ export const dict: Record<Locale, Dict> = {
           "Referral bonus credits",
         ],
         cta: "Start free",
-      },
-      starter: {
-        name: "Starter",
-        price: "Rp 500",
-        priceUnit: "",
-        desc: "An impulse buy cheaper than parking.",
-        items: [
-          "2 private credits",
-          "+1 drops to the world pool",
-          "Unlimited pool claims",
-          "Supports the hunt",
-        ],
-        cta: "Get Starter",
-      },
-      bundle: {
-        name: "Bundle",
-        price: "Rp 10.000",
-        priceUnit: "",
-        desc: "For serial sticker hunters.",
-        items: [
-          "45 private credits (+5 bonus)",
-          "+12 world pool drops",
-          "Unlimited pool claims",
-          "Best per-credit value",
-        ],
-        cta: "Get Bundle",
       },
       note: "✓ Free tier stays free  ·  ✓ Top-ups via QRIS  ·  ✓ No subscription, it's credits",
     },
@@ -669,7 +651,7 @@ export const dict: Record<Locale, Dict> = {
       bundleName: "Bundle — Rp 10.000",
       customName: "Custom",
       customLabel: "Nominal bebas (min Rp 500)",
-      customHint: "≈ 1 credit per Rp 250",
+      customHint: "Rp 500 = 2 credit + 1 tetesan world pool",
       creditsLabel: "credit",
       poolDropLabel: "tetesan pool",
       payTitle: "Scan untuk bayar",
@@ -781,8 +763,19 @@ export const dict: Record<Locale, Dict> = {
         "Bayar via QRIS — GoPay, OVO, DANA, ShopeePay, atau m-banking apa pun. Founder pricing terkunci selama site ini hidup.",
       codeTag: "Kode referral?",
       codeHint: "Masukkan saat daftar untuk bonus credit",
-      soon: "Segera hadir",
-      popular: "Populer",
+      topup: {
+        name: "Isi ulang",
+        price: "Nominal bebas",
+        priceUnit: "",
+        desc: "Bayar berapapun — mulai Rp 500. QRIS instan, credit masuk dalam hitungan detik.",
+        items: [
+          "Rp 500 = 2 credits + 1 world pool drop",
+          "Min Rp 500, maks Rp 100.000",
+          "Setiap top-up meneteskan bonus credit ke world pool",
+          "Klaim pool tanpa batas selamanya",
+        ],
+        cta: "Isi sekarang",
+      },
       free: {
         name: "Gratis",
         price: "Rp 0",
@@ -795,32 +788,6 @@ export const dict: Record<Locale, Dict> = {
           "Bonus credit referral",
         ],
         cta: "Mulai gratis",
-      },
-      starter: {
-        name: "Starter",
-        price: "Rp 500",
-        priceUnit: "",
-        desc: "Harga impulse, lebih murah dari parkir motor.",
-        items: [
-          "2 credit private",
-          "+1 menetes ke world pool",
-          "Klaim pool tanpa batas",
-          "Dukung perburuan ini",
-        ],
-        cta: "Ambil Starter",
-      },
-      bundle: {
-        name: "Bundle",
-        price: "Rp 10.000",
-        priceUnit: "",
-        desc: "Buat pemburu stiker sejati.",
-        items: [
-          "45 credit private (bonus +5)",
-          "+12 tetesan world pool",
-          "Klaim pool tanpa batas",
-          "Nilai per credit terbaik",
-        ],
-        cta: "Ambil Bundle",
       },
       note: "✓ Free tier tetap gratis  ·  ✓ Top-up via QRIS  ·  ✓ Tanpa langganan, ini credit",
     },

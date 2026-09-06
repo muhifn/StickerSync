@@ -20,15 +20,11 @@ import httpx
 
 BASE_URL = "https://pay.instanlive.id/api/v1"
 
-# Packages: (price_idr, credits, pool_drops)
-PACKAGES = {
-    "starter": {"amount": 500, "credits": 2, "pool_drops": 1},
-    "bundle": {"amount": 10_000, "credits": 50, "pool_drops": 12},
-}
+# Single top-up model: any amount (min Rp 500), ~Rp 250/credit
 CUSTOM_MIN = 500
 CUSTOM_MAX = 100_000
-CUSTOM_CREDIT_RATE = 250  # Rp 250 per credit
-CUSTOM_POOL_RATE = 4      # 1 pool drop per 4 credits
+CUSTOM_CREDIT_RATE = 250  # Rp 250 per credit  -> Rp 500 = 2 credits
+CUSTOM_POOL_RATE = 2      # 1 pool drop per 2 credits -> 1 drop per Rp 500
 
 
 def get_api_key() -> str:
@@ -40,22 +36,20 @@ def is_sandbox() -> bool:
 
 
 def package_for(package: str, custom_amount: Optional[int] = None) -> dict:
-    """Resolve package name (+custom nominal) -> {amount, credits, pool_drops} or raises ValueError."""
-    if package in PACKAGES:
-        return dict(PACKAGES[package])
-    if package == "custom":
-        amt = int(custom_amount or 0)
-        if amt < CUSTOM_MIN or amt > CUSTOM_MAX:
-            raise ValueError(f"Custom amount must be Rp {CUSTOM_MIN:,}–{CUSTOM_MAX:,}")
-        credits = amt // CUSTOM_CREDIT_RATE
-        if credits < 1:
-            raise ValueError("Amount too small for credits")
-        return {
-            "amount": amt,
-            "credits": credits,
-            "pool_drops": credits // CUSTOM_POOL_RATE,
-        }
-    raise ValueError("Unknown package")
+    """Resolve top-up amount -> {amount, credits, pool_drops}. Custom only."""
+    if package != "custom":
+        raise ValueError("Unknown package")
+    amt = int(custom_amount or 0)
+    if amt < CUSTOM_MIN or amt > CUSTOM_MAX:
+        raise ValueError(f"Top-up must be Rp {CUSTOM_MIN:,}–{CUSTOM_MAX:,}")
+    credits = amt // CUSTOM_CREDIT_RATE
+    if credits < 1:
+        raise ValueError("Amount too small for credits")
+    return {
+        "amount": amt,
+        "credits": credits,
+        "pool_drops": credits // CUSTOM_POOL_RATE,
+    }
 
 
 async def _request(method: str, path: str, json_body: Optional[dict] = None) -> dict:

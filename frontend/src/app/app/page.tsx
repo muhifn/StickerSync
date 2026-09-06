@@ -83,7 +83,20 @@ export default function AppPage() {
       return;
     }
     refreshBalanceState();
+    // deep link from pricing: /app?topup=... opens the top-up modal
+    const topup = new URLSearchParams(window.location.search).get("topup");
+    if (topup) {
+      setShowTopUp(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   }, [refreshBalanceState]);
+
+  // navbar "+ Top up" button opens the modal
+  useEffect(() => {
+    const open = () => setShowTopUp(true);
+    window.addEventListener("stickersync:opentopup", open);
+    return () => window.removeEventListener("stickersync:opentopup", open);
+  }, []);
 
   const handleFetch = useCallback(async () => {
     if (!url.trim() || loading) return;

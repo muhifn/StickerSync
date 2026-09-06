@@ -158,31 +158,9 @@ export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
             <h3 className="mt-4 font-display text-xl font-extrabold tracking-tight">{t.topupTitle}</h3>
             {error && <p className="mt-2 text-xs text-error">Payment {error} — pick a package again</p>}
             <div className="mt-5 space-y-2.5">
-              <button
-                onClick={() => createPayment("starter")}
-                disabled={busy}
-                className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-background px-4 py-3.5 text-left transition-all hover:border-accent/40 active:scale-[0.98] disabled:opacity-50"
-              >
-                <div>
-                  <p className="text-sm font-bold">{t.starterName}</p>
-                  <p className="mt-0.5 text-xs text-white/40">2 {t.creditsLabel} · 1 {t.poolDropLabel}</p>
-                </div>
-                {busy ? <Spinner size={16} className="animate-spin text-accent" /> : <Coins size={18} className="text-accent" />}
-              </button>
-              <button
-                onClick={() => createPayment("bundle")}
-                disabled={busy}
-                className="flex w-full items-center justify-between rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3.5 text-left transition-all hover:border-accent/60 active:scale-[0.98] disabled:opacity-50"
-              >
-                <div>
-                  <p className="text-sm font-bold">{t.bundleName}</p>
-                  <p className="mt-0.5 text-xs text-white/40">50 {t.creditsLabel} · 12 {t.poolDropLabel}</p>
-                </div>
-                <Sparkle size={16} weight="fill" className="text-accent" />
-              </button>
-              <div className="rounded-2xl border border-white/10 bg-background p-4">
+              <div className="rounded-2xl border border-accent/30 bg-accent-soft p-4">
                 <label htmlFor="custom-amount" className="text-sm font-bold">
-                  {t.customName}
+                  {t.customLabel}
                 </label>
                 <div className="mt-2.5 flex items-center gap-2.5">
                   <span className="font-mono text-sm text-white/40">Rp</span>
@@ -193,19 +171,44 @@ export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
                     step={500}
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-raised px-3 py-2 font-mono text-sm text-white focus-visible:border-accent"
+                    autoFocus
+                    className="w-full rounded-xl border border-white/10 bg-raised px-3 py-2.5 font-mono text-lg text-white focus-visible:border-accent"
                   />
-                  <button
-                    onClick={() => createPayment("custom")}
-                    disabled={busy || parseInt(customAmount, 10) < 500}
-                    className="shrink-0 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-accent-fg transition-transform active:scale-95 disabled:opacity-40"
-                  >
-                    OK
-                  </button>
                 </div>
-                <p className="mt-2 text-[11px] text-white/40">
-                  {t.customLabel} — {t.customHint}
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {[500, 2000, 5000, 10000, 25000].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => setCustomAmount(String(amt))}
+                      aria-pressed={customAmount === String(amt)}
+                      className={`rounded-full px-3 py-1 font-mono text-xs font-bold transition-colors ${
+                        customAmount === String(amt)
+                          ? "bg-accent text-accent-fg"
+                          : "border border-white/10 text-white/60 hover:border-white/40 hover:text-white"
+                      }`}
+                    >
+                      {amt.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2.5 text-[11px] text-white/40">
+                  {t.customHint}
+                  {" · "}
+                  {t.creditsLabel}: <span className="font-bold text-accent">
+                    {Math.max(0, Math.floor((parseInt(customAmount, 10) || 0) / 250))}
+                  </span>
+                  {" · "}
+                  {t.poolDropLabel}: <span className="font-bold text-accent-2">
+                    {Math.max(0, Math.floor((parseInt(customAmount, 10) || 0) / 500))}
+                  </span>
                 </p>
+                <button
+                  onClick={() => createPayment("custom")}
+                  disabled={busy || (parseInt(customAmount, 10) || 0) < 500}
+                  className="mt-3 flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-accent-fg transition-all hover:shadow-[0_0_30px_rgba(254,44,85,0.45)] active:scale-95 disabled:opacity-40"
+                >
+                  {busy ? "…" : `${t.payTitle} — Rp ${(parseInt(customAmount, 10) || 0).toLocaleString()}`}
+                </button>
               </div>
             </div>
           </>

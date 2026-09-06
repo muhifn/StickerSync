@@ -146,13 +146,16 @@ export default function Landing() {
     return () => ob.disconnect();
   }, []);
 
-  const startCta = useCallback(() => {
-    if (getToken()) {
-      router.push("/app");
-    } else {
-      setAuthMode("signup"); // open Google-only modal directly — no redirect roundtrip
-    }
-  }, [router]);
+  const startCta = useCallback(
+    (pkg?: "starter" | "bundle") => {
+      if (getToken()) {
+        router.push(pkg ? `/app?topup=${pkg}` : "/app");
+      } else {
+        setAuthMode("signup"); // open Google-only modal directly — no redirect roundtrip
+      }
+    },
+    [router]
+  );
 
   const numLocale = locale === "id" ? "id-ID" : "en-US";
 
@@ -182,7 +185,7 @@ export default function Landing() {
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <button
-            onClick={startCta}
+            onClick={() => startCta()}
             className="flex min-h-[44px] items-center gap-2 rounded-full bg-accent px-10 py-4 font-body text-base font-extrabold tracking-tight text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
           >
             {t.hero.cta} <ArrowRight size={18} weight="bold" />
@@ -506,7 +509,7 @@ export default function Landing() {
             {t.pricing.codeHint}
           </div>
 
-          <div className="segmented mt-12 grid-cols-1 text-left md:grid-cols-3">
+          <div className="segmented mx-auto mt-12 max-w-2xl grid-cols-1 text-left md:grid-cols-2">
             {/* Free */}
             <div className="flex flex-col p-9 md:p-10">
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
@@ -530,26 +533,26 @@ export default function Landing() {
                 ))}
               </ul>
               <button
-                onClick={startCta}
+                onClick={() => startCta()}
                 className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
                 {t.pricing.free.cta}
               </button>
             </div>
 
-            {/* Starter — soon */}
-            <div className="relative flex flex-col p-9 md:p-10">
+            {/* Top up — any amount (min Rp 500) */}
+            <div className="relative flex flex-col bg-[#07100a] p-9 ring-1 ring-inset ring-accent/25 md:p-10">
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
-                {t.pricing.starter.name}
+                {t.pricing.topup.name}
               </p>
               <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
-                {t.pricing.starter.price}
+                {t.pricing.topup.price}
               </p>
               <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
-                {t.pricing.starter.desc}
+                {t.pricing.topup.desc}
               </p>
               <ul className="mt-7 flex-1 space-y-3">
-                {t.pricing.starter.items.map((item) => (
+                {t.pricing.topup.items.map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
                     <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
@@ -557,40 +560,10 @@ export default function Landing() {
                 ))}
               </ul>
               <button
-                onClick={startCta}
+                onClick={() => startCta("starter")}
                 className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
               >
-                {t.pricing.starter.cta}
-              </button>
-            </div>
-
-            {/* Bundle — soon, popular */}
-            <div className="relative flex flex-col bg-[#07120c] p-9 ring-1 ring-inset ring-accent/25 md:p-10">
-              <span className="absolute right-5 top-5 rounded-md bg-accent px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent-fg">
-                {t.pricing.popular}
-              </span>
-              <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
-                {t.pricing.bundle.name}
-              </p>
-              <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
-                {t.pricing.bundle.price}
-              </p>
-              <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
-                {t.pricing.bundle.desc}
-              </p>
-              <ul className="mt-7 flex-1 space-y-3">
-                {t.pricing.bundle.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
-                    <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={startCta}
-                className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
-              >
-                {t.pricing.bundle.cta}
+                {t.pricing.topup.cta}
               </button>
             </div>
           </div>
@@ -655,7 +628,7 @@ export default function Landing() {
               {t.finalCta.subtitle}
             </p>
             <button
-              onClick={startCta}
+              onClick={() => startCta()}
               className="mx-auto mt-9 flex min-h-[52px] items-center gap-2 rounded-full bg-black px-12 py-4 font-body text-lg font-extrabold tracking-tight text-white transition-transform hover:scale-105 active:scale-95"
             >
               {t.finalCta.button} <ArrowRight size={18} weight="bold" />

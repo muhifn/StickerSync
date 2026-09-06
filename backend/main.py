@@ -1015,7 +1015,7 @@ async def payments_create(req: PaymentCreateRequest, request: Request, user: dic
     ref_id = pay_mod.new_ref_id()
     try:
         txn = await pay_mod.create_transaction(
-            ref_id, pkg["amount"], f"StickerSync {req.package} — {pkg['credits']} credits"
+            ref_id, pkg["amount"], f"StickerSync top-up — {pkg['credits']} credits"
         )
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail=str(e))

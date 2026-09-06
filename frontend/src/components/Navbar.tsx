@@ -98,6 +98,8 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
   // (router.push("/") from /app could dedup/fail silently — this was the back-to-home bug.)
   const goHome = () => window.location.assign("/");
   const goApp = () => window.location.assign("/app");
+  const openTopUp = () =>
+    window.dispatchEvent(new CustomEvent("stickersync:opentopup"));
 
   const handleSignOut = () => {
     clearSession();
@@ -228,7 +230,17 @@ export function Navbar({ variant }: { variant: "landing" | "app" }) {
                 <MagnifyingGlass size={14} weight="bold" /> {t.nav.openApp}
               </button>
             ) : (
-              <div className="relative flex items-center" ref={menuRef}>
+              <div className="relative flex items-center gap-2.5" ref={menuRef}>
+                {variant === "app" && (
+                  <button
+                    onClick={openTopUp}
+                    aria-label="Top up credits"
+                    title="Top up credits"
+                    className="flex min-h-[34px] items-center gap-1.5 rounded-full bg-accent px-3.5 py-2 font-body text-[12px] font-bold text-accent-fg transition-all hover:shadow-[0_0_30px_rgba(254,44,85,0.45)] active:scale-95"
+                  >
+                    <Coins size={13} weight="fill" /> +
+                  </button>
+                )}
                 {/* Balance chip: DISPLAY ONLY — no sign-out on click (bug fix) */}
                 <div
                   className="flex items-center gap-1.5 rounded-l-full border border-r-0 border-white/10 bg-raised px-3.5 py-2 font-mono text-xs font-semibold text-white/80"
