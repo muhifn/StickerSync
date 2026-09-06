@@ -174,7 +174,9 @@ export interface Dict {
     founderSub: string;
     codeTag: string;
     codeHint: string;
+    popular: string;
     topup: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
+    starter: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     free: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     note: string;
   };
@@ -329,7 +331,7 @@ export const dict: Record<Locale, Dict> = {
       starterName: "Starter — Rp 500",
       bundleName: "Bundle — Rp 10.000",
       customName: "Custom",
-      customLabel: "Custom amount (min Rp 500)",
+      customLabel: "Top-up amount (multiples of Rp 500)",
       customHint: "Rp 500 = 2 credits + 1 world pool drop",
       creditsLabel: "credits",
       poolDropLabel: "pool drops",
@@ -442,18 +444,32 @@ export const dict: Record<Locale, Dict> = {
         "Pay via QRIS — GoPay, OVO, DANA, ShopeePay, or any mobile banking app. Founder pricing locked for as long as the site lives.",
       codeTag: "Referral code?",
       codeHint: "Apply at signup for bonus credits",
+      popular: "Popular",
       topup: {
-        name: "Top up",
-        price: "Any amount",
+        name: "Any amount",
+        price: "Pick your own",
         priceUnit: "",
-        desc: "Pay what you want — starting from Rp 500. Instant QRIS, credits land in seconds.",
+        desc: "Any multiple of Rp 500 — instant QRIS, credits land in seconds.",
         items: [
-          "Rp 500 = 2 credits + 1 world pool drop",
-          "Min Rp 500, max Rp 100.000",
-          "Every top-up drops bonus credits into the world pool",
+          "Any amount in Rp 500 steps",
+          "Every Rp 500 = 2 credits + 1 world pool drop",
+          "Bonus credits drop into the world pool for everyone",
           "Unlimited pool claims forever",
         ],
-        cta: "Top up now",
+        cta: "Top up any amount",
+      },
+      starter: {
+        name: "Starter",
+        price: "Rp 500",
+        priceUnit: "",
+        desc: "The impulse buy — cheaper than parking.",
+        items: [
+          "2 private credits",
+          "+1 drop to the world pool",
+          "Unlimited pool claims",
+          "Supports the hunt",
+        ],
+        cta: "Get Starter",
       },
       free: {
         name: "Free",
@@ -650,7 +666,7 @@ export const dict: Record<Locale, Dict> = {
       starterName: "Starter — Rp 500",
       bundleName: "Bundle — Rp 10.000",
       customName: "Custom",
-      customLabel: "Nominal bebas (min Rp 500)",
+      customLabel: "Nominal isi ulang (kelipatan Rp 500)",
       customHint: "Rp 500 = 2 credit + 1 tetesan world pool",
       creditsLabel: "credit",
       poolDropLabel: "tetesan pool",
@@ -763,18 +779,32 @@ export const dict: Record<Locale, Dict> = {
         "Bayar via QRIS — GoPay, OVO, DANA, ShopeePay, atau m-banking apa pun. Founder pricing terkunci selama site ini hidup.",
       codeTag: "Kode referral?",
       codeHint: "Masukkan saat daftar untuk bonus credit",
+      popular: "Populer",
       topup: {
-        name: "Isi ulang",
+        name: "Berapapun",
         price: "Nominal bebas",
         priceUnit: "",
-        desc: "Bayar berapapun — mulai Rp 500. QRIS instan, credit masuk dalam hitungan detik.",
+        desc: "Kelipatan Rp 500 berapapun — QRIS instan, credit masuk dalam hitungan detik.",
         items: [
-          "Rp 500 = 2 credits + 1 world pool drop",
-          "Min Rp 500, maks Rp 100.000",
-          "Setiap top-up meneteskan bonus credit ke world pool",
+          "Nominal bebas kelipatan Rp 500",
+          "Setiap Rp 500 = 2 credit + 1 tetesan world pool",
+          "Bonus credit menetes ke world pool buat semua orang",
           "Klaim pool tanpa batas selamanya",
         ],
-        cta: "Isi sekarang",
+        cta: "Isi nominal bebas",
+      },
+      starter: {
+        name: "Starter",
+        price: "Rp 500",
+        priceUnit: "",
+        desc: "Harga impulse — lebih murah dari parkir motor.",
+        items: [
+          "2 credit private",
+          "+1 tetesan ke world pool",
+          "Klaim pool tanpa batas",
+          "Dukung perburuan ini",
+        ],
+        cta: "Ambil Starter",
       },
       free: {
         name: "Gratis",

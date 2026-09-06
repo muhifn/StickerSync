@@ -21,10 +21,11 @@ import httpx
 BASE_URL = "https://pay.instanlive.id/api/v1"
 
 # Single top-up model: any amount (min Rp 500), ~Rp 250/credit
-CUSTOM_MIN = 500
+CUSTOM_MIN = 500         # marketing: Rp 500 = 2 credits + 1 pool drop
 CUSTOM_MAX = 100_000
-CUSTOM_CREDIT_RATE = 250  # Rp 250 per credit  -> Rp 500 = 2 credits
-CUSTOM_POOL_RATE = 2      # 1 pool drop per 2 credits -> 1 drop per Rp 500
+CUSTOM_STEP = 500        # amounts must be multiples of Rp 500
+CUSTOM_CREDIT_RATE = 250  # Rp 250 per credit -> Rp 500 = 2 credits
+CUSTOM_POOL_RATE = 2      # 1 pool drop per Rp 500
 
 
 def get_api_key() -> str:
@@ -42,6 +43,8 @@ def package_for(package: str, custom_amount: Optional[int] = None) -> dict:
     amt = int(custom_amount or 0)
     if amt < CUSTOM_MIN or amt > CUSTOM_MAX:
         raise ValueError(f"Top-up must be Rp {CUSTOM_MIN:,}–{CUSTOM_MAX:,}")
+    if amt % CUSTOM_STEP != 0:
+        raise ValueError("Amount must be a multiple of Rp 500")
     credits = amt // CUSTOM_CREDIT_RATE
     if credits < 1:
         raise ValueError("Amount too small for credits")

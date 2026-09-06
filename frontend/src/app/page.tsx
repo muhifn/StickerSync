@@ -509,7 +509,7 @@ export default function Landing() {
             {t.pricing.codeHint}
           </div>
 
-          <div className="segmented mx-auto mt-12 max-w-2xl grid-cols-1 text-left md:grid-cols-2">
+          <div className="segmented mt-12 grid-cols-1 text-left md:grid-cols-3">
             {/* Free */}
             <div className="flex flex-col p-9 md:p-10">
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
@@ -540,19 +540,19 @@ export default function Landing() {
               </button>
             </div>
 
-            {/* Top up — any amount (min Rp 500) */}
-            <div className="relative flex flex-col bg-[#07100a] p-9 ring-1 ring-inset ring-accent/25 md:p-10">
+            {/* Starter — Rp 500 hero offer */}
+            <div className="flex flex-col p-9 md:p-10">
               <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
-                {t.pricing.topup.name}
+                {t.pricing.starter.name}
               </p>
               <p className="mt-5 font-display text-5xl font-black tracking-[-3px]">
-                {t.pricing.topup.price}
+                {t.pricing.starter.price}
               </p>
               <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
-                {t.pricing.topup.desc}
+                {t.pricing.starter.desc}
               </p>
               <ul className="mt-7 flex-1 space-y-3">
-                {t.pricing.topup.items.map((item) => (
+                {t.pricing.starter.items.map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
                     <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent" />
                     {item}
@@ -562,6 +562,36 @@ export default function Landing() {
               <button
                 onClick={() => startCta("starter")}
                 className="mt-9 block w-full rounded-full bg-accent px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-fg transition-all hover:shadow-[0_0_40px_rgba(254,44,85,0.5)] active:scale-95"
+              >
+                {t.pricing.starter.cta}
+              </button>
+            </div>
+
+            {/* Any amount — multiples of Rp 500 */}
+            <div className="relative flex flex-col bg-[#07100a] p-9 ring-1 ring-inset ring-accent-2/25 md:p-10">
+              <span className="absolute right-5 top-5 rounded-md bg-accent-2 px-2.5 py-1 font-body text-[10px] font-bold uppercase tracking-[1.5px] text-accent-2-fg">
+                {t.pricing.popular}
+              </span>
+              <p className="font-body text-xs font-bold uppercase tracking-[2px] text-white/40">
+                {t.pricing.topup.name}
+              </p>
+              <p className="mt-5 font-display text-4xl font-black tracking-[-2px] xl:text-5xl">
+                {t.pricing.topup.price}
+              </p>
+              <p className="mt-4 border-b border-white/5 pb-7 text-sm leading-relaxed text-white/40">
+                {t.pricing.topup.desc}
+              </p>
+              <ul className="mt-7 flex-1 space-y-3">
+                {t.pricing.topup.items.map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/85">
+                    <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-accent-2" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => startCta("starter")}
+                className="mt-9 block w-full rounded-full bg-accent-2 px-5 py-3.5 font-body text-[15px] font-extrabold text-accent-2-fg transition-all hover:shadow-[0_0_40px_rgba(37,211,102,0.4)] active:scale-95"
               >
                 {t.pricing.topup.cta}
               </button>

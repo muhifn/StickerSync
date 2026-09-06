@@ -1018,7 +1018,14 @@ async def payments_create(req: PaymentCreateRequest, request: Request, user: dic
             ref_id, pkg["amount"], f"StickerSync top-up — {pkg['credits']} credits"
         )
     except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        msg = str(e)
+        if "minimum" in msg.lower():
+            # masked friendly nudge (gateway live minimum Rp 5.000)
+            raise HTTPException(
+                status_code=422,
+                detail="QRIS starts from Rp 5.000 — at Rp 5.000 you get 20 credits + 10 world pool drops (10x the Rp 500 rate). Try Rp 5.000 or higher!",
+            )
+        raise HTTPException(status_code=502, detail=msg)
 
     # persist locally (idempotent: ref_id unique)
     try:

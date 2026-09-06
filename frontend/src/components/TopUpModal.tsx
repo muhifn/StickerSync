@@ -38,7 +38,7 @@ export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
   const [stage, setStage] = useState<Stage>("pick");
   const [busy, setBusy] = useState(false);
   const [payment, setPayment] = useState<Payment | null>(null);
-  const [customAmount, setCustomAmount] = useState("2000");
+  const [customAmount, setCustomAmount] = useState("500");
   const [error, setError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const pollRef = useRef<number | null>(null);
@@ -176,7 +176,7 @@ export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
                   />
                 </div>
                 <div className="mt-2.5 flex flex-wrap gap-2">
-                  {[500, 2000, 5000, 10000, 25000].map((amt) => (
+                  {[500, 1000, 5000, 10000, 25000].map((amt) => (
                     <button
                       key={amt}
                       onClick={() => setCustomAmount(String(amt))}
