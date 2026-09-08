@@ -8,11 +8,11 @@ import {
   CheckCircle,
   ArrowSquareOut,
   Spinner,
-  Sparkle,
   Bank,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 
 interface TopUpModalProps {
   onClose: () => void;
@@ -33,8 +33,8 @@ interface Payment {
 }
 
 export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
-  const [locale, setLocale] = useState<Locale>("en");
-  const [t, setT] = useState(dict.en.payments);
+  const { locale } = useLocale();
+  const t = dict[locale].payments;
   const [stage, setStage] = useState<Stage>("pick");
   const [busy, setBusy] = useState(false);
   const [payment, setPayment] = useState<Payment | null>(null);
@@ -43,22 +43,15 @@ export function TopUpModal({ onClose, onPaid }: TopUpModalProps) {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const pollRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const l = detectLocale();
-    setLocale(l);
-    setT(dict[l].payments);
-    return onLocaleChange((nl) => {
-      setLocale(nl);
-      setT(dict[nl].payments);
-    });
-  }, []);
-
   // countdown + polling while paying
   useEffect(() => {
     if (stage !== "pay" || !payment) return;
-    const expires = payment.expires_in_minutes * 60;
-    setSecondsLeft(expires);
-    const cd = window.setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    const expiresAt = payment.expires_in_minutes * 60;
+    // initialize the countdown via microtask — state settles async, no sync cascade
+    Promise.resolve().then(() => setSecondsLeft(expiresAt));
+    const cd = window.setInterval(() => {
+      setSecondsLeft((s) => Math.max(0, s - 1));
+    }, 1000);
 
     const poll = async () => {
       try {

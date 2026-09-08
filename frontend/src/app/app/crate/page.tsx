@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import {
   BookmarkSimple,
   Check,
@@ -13,7 +14,8 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 import { Navbar } from "@/components/Navbar";
 
 interface CrateItem {
@@ -27,27 +29,36 @@ interface CrateItem {
 }
 
 export default function CratePage() {
-  const [locale, setLocale] = useState<Locale>("en");
-  const [t, setT] = useState(dict.en.crate);
+  const { locale } = useLocale();
+  const t = dict[locale].crate;
   const [items, setItems] = useState<CrateItem[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [exported, setExported] = useState<number | null>(null);
   const [showWA, setShowWA] = useState(false);
 
-  useEffect(() => {
-    const l = detectLocale();
-    setLocale(l);
-    setT(dict[l].crate);
-    return onLocaleChange((nl) => {
-      setLocale(nl);
-      setT(dict[nl].crate);
-    });
-  }, []);
-
   // auth guard
   useEffect(() => {
     if (!getToken()) window.location.replace("/?signin=1");
+  }, []);
+
+  // initial load — async settles state after await, no sync cascade
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/crate`, {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        if (res.status === 401) {
+          window.location.replace("/?signin=1");
+          return;
+        }
+        const data = await res.json();
+        setItems(data.stickers || []);
+      } catch {
+        setItems([]);
+      }
+    })();
   }, []);
 
   const load = useCallback(async () => {
@@ -65,10 +76,6 @@ export default function CratePage() {
       setItems([]);
     }
   }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -192,7 +199,7 @@ export default function CratePage() {
                     aria-pressed={isSel}
                     className="relative block aspect-square w-full overflow-hidden rounded-[16px] bg-[#0d0d0d]"
                   >
-                    <img src={s.url} alt="Sticker" className="h-full w-full object-contain" loading="lazy" />
+                    <Image src={s.url} alt="Sticker" fill unoptimized className="object-contain" />
                     <span
                       className={`absolute inset-0 flex items-center justify-center bg-black/60 transition-opacity ${
                         isSel ? "opacity-100" : "opacity-0"

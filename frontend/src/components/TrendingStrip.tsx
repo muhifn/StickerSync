@@ -1,9 +1,10 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Eye, DownloadSimple, ArrowRight } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 
 export interface TrendingSticker {
   sticker_id: string;
@@ -59,7 +60,9 @@ const Card = memo(function Card({
 
   const handleCta = () => {
     if (getToken()) {
-      window.location.assign("/app"); // signed in -> go grab it in the app
+      // signed in -> deep link: land in the app with THIS sticker ready to grab/crate
+      const q = new URLSearchParams({ sid: s.sticker_id, surl: s.url, anim: s.is_animated ? "1" : "0" });
+      window.location.assign(`/app?${q.toString()}`);
     } else {
       window.dispatchEvent(new CustomEvent("stickersync:openauth", { detail: "signup" }));
     }
@@ -80,11 +83,12 @@ const Card = memo(function Card({
         </span>
       )}
       <div className="relative aspect-square overflow-hidden bg-[#0d0d0d]">
-        <img
+        <Image
           src={s.url}
           alt="Sticker"
-          className="h-full w-full object-contain"
-          loading="lazy"
+          fill
+          unoptimized
+          className="object-contain"
         />
         {s.is_animated && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/70 backdrop-blur">
@@ -116,14 +120,9 @@ const Card = memo(function Card({
 /** Landing "Live watch" section: trending stickers grid (views+downloads 72h). */
 export const TrendingStrip = memo(function TrendingStrip() {
   const [stickers, setStickers] = useState<TrendingSticker[] | null>(null);
-  const [locale, setLocale] = useState<Locale>("en");
-  const t = dict[locale].trending;
+  const { t } = useLocale();
+  const localeT = t.trending;
   const onView = useViewPing();
-
-  useEffect(() => {
-    setLocale(detectLocale());
-    return onLocaleChange((l) => setLocale(l));
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -151,14 +150,14 @@ export const TrendingStrip = memo(function TrendingStrip() {
           <span className="absolute inline-flex h-full w-full rounded-full bg-accent opacity-60 motion-safe:animate-ping" />
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
         </span>
-        <p className="section-tag mb-0">{t.tag}</p>
+        <p className="section-tag mb-0">{localeT.tag}</p>
       </div>
-      <h2 className="section-h">{t.title}</h2>
-      <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{t.lead}</p>
+      <h2 className="section-h">{localeT.title}</h2>
+      <p className="-mt-8 max-w-[52ch] text-base leading-relaxed text-white/50">{localeT.lead}</p>
       <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
         {(stickers ?? Array.from({ length: 8 }, () => null)).map((s, i) =>
           s ? (
-            <Card key={s.sticker_id} s={s} onView={onView} cta={t.cta} rank={i < 3 ? i + 1 : null} />
+            <Card key={s.sticker_id} s={s} onView={onView} cta={localeT.cta} rank={i < 3 ? i + 1 : null} />
           ) : (
             <div key={i} className="die-cut overflow-hidden" aria-hidden>
               <div className="skeleton aspect-square" />

@@ -3,7 +3,6 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import {
   MagnifyingGlass,
-  Check,
   Eye,
   ArrowLeft,
   ArrowRight,
@@ -12,7 +11,9 @@ import {
   WhatsappLogo,
 } from "@phosphor-icons/react";
 import { API_BASE } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
+import Image from "next/image";
 import { useViewPing, type TrendingSticker } from "@/components/TrendingStrip";
 import { CrateButton } from "@/components/CrateButton";
 
@@ -28,14 +29,9 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [rows, setRows] = useState<LibRow[] | null>(null);
-  const [locale, setLocale] = useState<Locale>("en");
+  const { locale } = useLocale();
   const t = dict[locale].library;
   const onView = useViewPing();
-
-  useEffect(() => {
-    setLocale(detectLocale());
-    return onLocaleChange((l) => setLocale(l));
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -129,11 +125,12 @@ export const LibraryBrowse = memo(function LibraryBrowse({ onDownload }: { onDow
             >
               <div className="relative aspect-square bg-background">
                 <CrateButton stickerId={s.sticker_id} url={s.url} className="absolute right-2.5 top-2.5 z-10" />
-                <img
+                <Image
                   src={s.url}
                   alt="Sticker"
-                  className="h-full w-full object-contain"
-                  loading="lazy"
+                  fill
+                  unoptimized
+                  className="object-contain"
                 />
                 {s.is_animated && (
                   <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/70 backdrop-blur">

@@ -20,6 +20,8 @@ export interface Dict {
     openApp: string;
     backHome: string;
     menu: string;
+    language: string;
+    home: string;
   };
   hero: {
     eyebrow: string;
@@ -218,6 +220,17 @@ export function onLocaleChange(cb: (locale: Locale) => void): () => void {
   return () => window.removeEventListener("stickersync:localechange", handler);
 }
 
+/** Current locale (client). Safe during SSR render — returns "en" snapshot. */
+export function currentLocale(): Locale {
+  return detectLocale();
+}
+
+/** Subscribe to locale changes at the store level (for useSyncExternalStore). */
+export function subscribeLocale(onChange: () => void): () => void {
+  window.addEventListener("stickersync:localechange", onChange);
+  return () => window.removeEventListener("stickersync:localechange", onChange);
+}
+
 export const dict: Record<Locale, Dict> = {
   en: {
     nav: {
@@ -229,6 +242,8 @@ export const dict: Record<Locale, Dict> = {
       openApp: "Open app",
       backHome: "Back to home",
       menu: "Menu",
+      language: "Language",
+      home: "Home",
     },
     hero: {
       eyebrow: "Sticker hunter — live now",
@@ -349,7 +364,7 @@ export const dict: Record<Locale, Dict> = {
       tag: "Tutorials",
       title: "From file to sticker.\nFast.",
       lead: "Three ways to get your downloaded stickers into your chats — pick whatever fits you.",
-      t1Tag: "WhatsApp · easiest",
+      t1Tag: "Easiest",
       t1Title: "Import the pack to your tray",
       t1Steps: [
         "Install Sticker Maker — free, one time",
@@ -358,7 +373,7 @@ export const dict: Record<Locale, Dict> = {
       ],
       t1Note: "Best for crate exports: many stickers, one import.",
       t1Cta: "Export your crate",
-      t2Tag: "WhatsApp · no apps",
+      t2Tag: "No apps",
       t2Title: "The sticker-overwrite trick",
       t2Steps: [
         "Ask a friend to send you any sticker in chat — WhatsApp saves its .webp file",
@@ -564,6 +579,8 @@ export const dict: Record<Locale, Dict> = {
       openApp: "Buka app",
       backHome: "Kembali ke home",
       menu: "Menu",
+      language: "Bahasa",
+      home: "Home",
     },
     hero: {
       eyebrow: "Pemburu stiker — live sekarang",
@@ -684,7 +701,7 @@ export const dict: Record<Locale, Dict> = {
       tag: "Tutorial",
       title: "Dari file jadi stiker.\nCepat.",
       lead: "Tiga cara memasukkan stiker hasil download ke chat kamu — pilih yang paling pas.",
-      t1Tag: "WhatsApp · termudah",
+      t1Tag: "Termudah",
       t1Title: "Import pack ke tray stiker",
       t1Steps: [
         "Install Sticker Maker — gratis, sekali saja",
@@ -693,7 +710,7 @@ export const dict: Record<Locale, Dict> = {
       ],
       t1Note: "Paling pas untuk export crate: banyak stiker, sekali import.",
       t1Cta: "Export crate kamu",
-      t2Tag: "WhatsApp · tanpa app",
+      t2Tag: "Tanpa app",
       t2Title: "Trik timpa stiker",
       t2Steps: [
         "Minta teman kirim stiker apa pun di chat — WhatsApp menyimpan file .webp-nya",

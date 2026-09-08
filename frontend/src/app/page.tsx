@@ -18,7 +18,7 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken, setSession } from "@/lib/auth";
-import { dict, detectLocale, persistLocale, type Locale } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 import { Navbar } from "@/components/Navbar";
 import { CountUp } from "@/components/CountUp";
 import { HuntTerminal } from "@/components/HuntTerminal";
@@ -45,23 +45,10 @@ const SectionHead = memo(function SectionHead({ tag, title }: { tag: string; tit
 
 export default function Landing() {
   const router = useRouter();
-  const [locale, setLocale] = useState<Locale>("en");
-  const [t, setT] = useState(dict.en);
+  const { locale, t } = useLocale();
   const [stats, setStats] = useState<Stats | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const l = detectLocale();
-    setLocale(l);
-    setT(dict[l]);
-  }, []);
-
-  const switchLocale = (l: Locale) => {
-    persistLocale(l);
-    setLocale(l);
-    setT(dict[l]);
-  };
 
   useEffect(() => {
     let alive = true;
@@ -87,34 +74,38 @@ export default function Landing() {
 
   // OAuth redirect handler: #token / #auth_error
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) return;
-    const params = new URLSearchParams(hash.slice(1));
-    const token = params.get("token");
-    const uid = params.get("uid");
-    const err = params.get("auth_error");
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    if (token && uid) {
-      setSession(token, uid);
-      router.push("/app");
-      return;
-    }
-    if (err) {
-      setAuthError(
-        err === "denied"
-          ? "Google sign-in was cancelled. Try again or use email."
-          : err === "email"
-          ? "We couldn't verify your Google email. Try again or use email."
-          : "The sign-in session expired. Please try again."
-      );
-      setAuthMode("login");
-    }
+    (async () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+      const params = new URLSearchParams(hash.slice(1));
+      const token = params.get("token");
+      const uid = params.get("uid");
+      const err = params.get("auth_error");
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      if (token && uid) {
+        setSession(token, uid);
+        router.push("/app");
+        return;
+      }
+      if (err) {
+        setAuthError(
+          err === "denied"
+            ? "Google sign-in was cancelled. Try again or use email."
+            : err === "email"
+            ? "We couldn't verify your Google email. Try again or use email."
+            : "The sign-in session expired. Please try again."
+        );
+        setAuthMode("login");
+      }
+    })();
   }, [router]);
 
   // ?signin=1 → open modal
   useEffect(() => {
-    const signin = new URLSearchParams(window.location.search).get("signin");
-    if (signin === "1" && !getToken()) setAuthMode("login");
+    (async () => {
+      const signin = new URLSearchParams(window.location.search).get("signin");
+      if (signin === "1" && !getToken()) setAuthMode("login");
+    })();
   }, []);
 
   // any component can request the auth modal (e.g. trending cards)

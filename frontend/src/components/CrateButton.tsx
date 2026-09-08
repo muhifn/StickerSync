@@ -3,7 +3,8 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { BookmarkSimple, Check } from "@phosphor-icons/react";
 import { API_BASE, getToken } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 
 interface CrateButtonProps {
   stickerId: string;
@@ -15,13 +16,8 @@ interface CrateButtonProps {
 export const CrateButton = memo(function CrateButton({ stickerId, url, className }: CrateButtonProps) {
   const [inCrate, setInCrate] = useState<boolean | null>(null); // null = unknown/loading
   const [busy, setBusy] = useState(false);
-  const [locale, setLocale] = useState<Locale>("en");
+  const { locale } = useLocale();
   const t = dict[locale].crate;
-
-  useEffect(() => {
-    setLocale(detectLocale());
-    return onLocaleChange((l) => setLocale(l));
-  }, []);
 
   // load initial state (bulk endpoint would be nicer; fine for now)
   useEffect(() => {

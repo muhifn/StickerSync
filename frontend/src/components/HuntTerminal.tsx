@@ -2,7 +2,8 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { API_BASE } from "@/lib/auth";
-import { dict, detectLocale, onLocaleChange, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 
 interface ActivityEvent {
   ago: string;
@@ -25,7 +26,7 @@ interface TerminalLine {
  */
 export const HuntTerminal = memo(function HuntTerminal() {
   const [events, setEvents] = useState<ActivityEvent[] | null>(null);
-  const [locale, setLocale] = useState<Locale>("en");
+  const { locale } = useLocale();
   const [boot, setBoot] = useState<string[]>([]);
   const [typed, setTyped] = useState<TerminalLine[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -36,9 +37,7 @@ export const HuntTerminal = memo(function HuntTerminal() {
   const t = dict[locale].terminal;
 
   useEffect(() => {
-    setLocale(detectLocale());
     reducedRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    return onLocaleChange((l) => setLocale(l));
   }, []);
 
   // Build terminal lines from activity events
@@ -130,8 +129,9 @@ export const HuntTerminal = memo(function HuntTerminal() {
   }, []);
 
   useEffect(() => {
+    const pending = timers.current;
     return () => {
-      timers.current.forEach((id) => window.clearTimeout(id));
+      pending.forEach((id) => window.clearTimeout(id));
     };
   }, []);
 

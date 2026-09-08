@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   ArrowRight,
   MagnifyingGlass,
@@ -8,13 +9,12 @@ import {
   WarningCircle,
   Sticker as StickerIcon,
   Check,
-  Coins,
   ShareFat,
   WhatsappLogo,
-  X,
 } from "@phosphor-icons/react";
 import { API_BASE, getToken, clearSession, refreshBalance } from "@/lib/auth";
-import { dict, detectLocale, type Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
+import { useLocale } from "@/lib/useLocale";
 import { AuthModal } from "@/components/AuthModal";
 import { Navbar } from "@/components/Navbar";
 import { LibraryBrowse } from "@/components/LibraryBrowse";
@@ -55,8 +55,7 @@ function StickerSkeleton() {
 }
 
 export default function AppPage() {
-  const [locale, setLocale] = useState<Locale>("en");
-  useEffect(() => setLocale(detectLocale()), []);
+  const { locale } = useLocale();
   const lib = dict[locale].library;
   const [url, setUrl] = useState("");
   const [username, setUsername] = useState("");
@@ -78,17 +77,33 @@ export default function AppPage() {
 
   // AUTH GUARD: no token -> hard redirect to landing with signin (no client-router loop)
   useEffect(() => {
-    if (!getToken()) {
-      window.location.replace("/?signin=1");
-      return;
-    }
-    refreshBalanceState();
-    // deep link from pricing: /app?topup=... opens the top-up modal
-    const topup = new URLSearchParams(window.location.search).get("topup");
-    if (topup) {
-      setShowTopUp(true);
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    (async () => {
+      if (!getToken()) {
+        window.location.replace("/?signin=1");
+        return;
+      }
+      await refreshBalanceState();
+      const params = new URLSearchParams(window.location.search);
+      // deep link from pricing: /app?topup=... opens the top-up modal
+      if (params.get("topup")) {
+        setShowTopUp(true);
+        window.history.replaceState(null, "", window.location.pathname);
+        return;
+      }
+      // deep link from landing "Live watch" cards: /app?sid=..&surl=..&anim=..
+      // -> show that sticker directly (Get / WA / crate all work off id+url)
+      const sid = params.get("sid");
+      const surl = params.get("surl");
+      if (sid && surl) {
+        setResult({
+          video_id: "",
+          total_comments: 0,
+          stickers_found: 1,
+          stickers: [{ id: sid, name: "", width: 0, height: 0, is_animated: params.get("anim") === "1", url: decodeURIComponent(surl) }],
+        });
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    })();
   }, [refreshBalanceState]);
 
   // navbar "+ Top up" button opens the modal
@@ -125,6 +140,14 @@ export default function AppPage() {
       setLoading(false);
     }
   }, [url, username, loading]);
+
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  };
 
   // Smart delivery: charge credit via POST /download, then deliver the
   // paid bytes the most practical way — OS share sheet (mobile) > clipboard
@@ -214,14 +237,6 @@ export default function AppPage() {
     },
     [downloading, refreshBalanceState]
   );
-
-  const triggerDownload = (blob: Blob, filename: string) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    window.setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-  };
 
   // Toast after Get/WA (auto-dismiss)
   const [toast, setToast] = useState<string | null>(null);
@@ -360,12 +375,14 @@ export default function AppPage() {
 
           {!loading && !error && result && result.stickers_found > 0 && (
             <div>
-              <div className="mb-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="font-display text-2xl font-black tracking-tight md:text-3xl">
-                  {result.stickers_found} sticker{result.stickers_found !== 1 ? "s" : ""}{filterLabel}
-                </h2>
-                <p className="text-sm text-white/40">found across {result.total_comments} comments</p>
-              </div>
+              {result.video_id && (
+                <div className="mb-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <h2 className="font-display text-2xl font-black tracking-tight md:text-3xl">
+                    {result.stickers_found} sticker{result.stickers_found !== 1 ? "s" : ""}{filterLabel}
+                  </h2>
+                  <p className="text-sm text-white/40">found across {result.total_comments} comments</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5 lg:grid-cols-4">
                 {result.stickers.map((sticker, i) => (
                   <article
@@ -376,11 +393,12 @@ export default function AppPage() {
                     style={{ ["--index" as string]: i }}
                   >
                     <div className="relative aspect-square overflow-hidden rounded-[1.4rem] bg-background">
-                      <img
+                      <Image
                         src={sticker.url}
                         alt="Sticker"
-                        className="h-full w-full object-contain"
-                        loading="lazy"
+                        fill
+                        unoptimized
+                        className="object-contain"
                       />
                       {sticker.is_animated && (
                         <span className="absolute left-2.5 top-2.5 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/70 backdrop-blur">
