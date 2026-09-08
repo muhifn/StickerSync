@@ -41,11 +41,15 @@ app.add_middleware(
 )
 
 TIKTOK_COMMENT_API = "https://www.tiktok.com/api/comment/list/"
+TIKTOK_REPLY_API = "https://www.tiktok.com/api/comment/list/reply/"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
-PARALLEL_PAGES = 3
+PARALLEL_PAGES = 3          # top-level pages fetched per parallel batch
+MAX_COMMENT_PAGES = 60      # hard cap: 60*50 = 3000 top-level comments per video
+MAX_REPLY_THREADS = 150     # hard cap: reply threads scanned per video
+REPLY_CONCURRENCY = 5       # parallel reply-thread fetches (TikTok rate safety)
 
 http_client: Optional[httpx.AsyncClient] = None
 resize_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="resize")
@@ -67,7 +71,8 @@ def get_client() -> httpx.AsyncClient:
         http_client = httpx.AsyncClient(
             timeout=15.0,
             follow_redirects=False,
-            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+            # rolling parallel batches need a few more concurrent sockets
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
             headers={"User-Agent": USER_AGENT},
         )
     return http_client
@@ -262,27 +267,47 @@ def extract_video_id(url: str) -> Optional[str]:
     return None
 
 
+async def _fetch_comment_page(client: httpx.AsyncClient, video_id: str, cursor: int) -> dict:
+    resp = await client.get(
+        TIKTOK_COMMENT_API,
+        params={"aweme_id": video_id, "count": 50, "cursor": cursor, "aid": 1988},
+    )
+    return resp.json()
+
+
 async def fetch_comments_parallel(video_id: str) -> list[dict]:
-    """Fetch PARALLEL_PAGES pages concurrently, then continue sequentially until exhausted.
-    Dedup by cid — TikTok's dynamic sort may return overlapping comments."""
+    """Fetch ALL top-level comment pages: rolling parallel batches of
+    PARALLEL_PAGES pages each until the API says has_more == 0 / empty page /
+    MAX_COMMENT_PAGES cap. Dedup by cid — TikTok's dynamic sort returns overlaps.
+    Returns top-level comments only; replies are fetched by fetch_reply_comments."""
     client = get_client()
 
-    async def page(cursor: int) -> dict:
-        resp = await client.get(
-            TIKTOK_COMMENT_API,
-            params={"aweme_id": video_id, "count": 50, "cursor": cursor, "aid": 1988},
-        )
-        return resp.json()
-
-    first = await page(0)
-    comments = list(first.get("comments") or [])
+    first = await _fetch_comment_page(client, video_id, 0)
+    comments: list[dict] = list(first.get("comments") or [])
     if not comments:
         return comments
 
-    # parallel batch of next pages
-    results = await asyncio.gather(*[page(50 * i) for i in range(1, PARALLEL_PAGES)])
-    for r in results:
-        comments.extend(r.get("comments") or [])
+    has_more = bool(first.get("has_more"))
+    cursor = 50
+    pages_fetched = 1
+
+    while has_more and pages_fetched < MAX_COMMENT_PAGES:
+        batch = min(PARALLEL_PAGES, MAX_COMMENT_PAGES - pages_fetched)
+        results = await asyncio.gather(
+            *[_fetch_comment_page(client, video_id, cursor + 50 * i) for i in range(batch)]
+        )
+        got_any = False
+        for r in results:
+            page = r.get("comments") or []
+            comments.extend(page)
+            if page:
+                got_any = True
+            if not r.get("has_more"):
+                has_more = False
+        pages_fetched += batch
+        cursor += 50 * batch
+        if not got_any:
+            has_more = False
 
     # dedup by cid
     seen: set[int] = set()
@@ -293,6 +318,57 @@ async def fetch_comments_parallel(video_id: str) -> list[dict]:
             continue
         seen.add(cid)
         deduped.append(c)
+    return deduped
+
+
+async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[dict]:
+    """Fetch replies for every top-level thread that declares replies.
+    Uses item_id + comment_id params (required — without item_id the API
+    returns an empty list even when replies exist). Concurrency-limited
+    to keep TikTok rate limits happy. Dedup by cid across threads."""
+    client = get_client()
+    threads = [c for c in top_comments if c.get("reply_comment_total", 0) > 0]
+    threads = threads[:MAX_REPLY_THREADS]
+
+    sem = asyncio.Semaphore(REPLY_CONCURRENCY)
+    replies: list[dict] = []
+
+    async def thread_replies(cid: str):
+        cursor = 0
+        while True:
+            async with sem:
+                try:
+                    resp = await client.get(
+                        TIKTOK_REPLY_API,
+                        params={
+                            "item_id": video_id,
+                            "comment_id": cid,
+                            "count": 50,
+                            "cursor": cursor,
+                            "aid": 1988,
+                        },
+                    )
+                    r = resp.json()
+                except Exception:
+                    return
+            page = r.get("comments") or []
+            if not page:
+                return
+            replies.extend(page)
+            if not r.get("has_more"):
+                return
+            cursor += 50
+
+    await asyncio.gather(*[thread_replies(c["cid"]) for c in threads if c.get("cid")])
+
+    seen: set[int] = set()
+    deduped: list[dict] = []
+    for rp in replies:
+        cid = rp.get("cid")
+        if cid in seen:
+            continue
+        seen.add(cid)
+        deduped.append(rp)
     return deduped
 
 
@@ -451,17 +527,22 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     if not comments:
         raise HTTPException(status_code=404, detail="No comments found for this video")
 
-    stickers = extract_stickers(comments, req.username)
+    # stickers posted as REPLIES live in threads — scan those too
+    replies = await fetch_reply_comments(video_id, comments)
+    total_comments = len(comments) + len(replies)
+
+    stickers = extract_stickers(comments + replies, req.username)
 
     if not stickers and req.username:
-        all_stickers = extract_stickers(comments)
+        all_stickers = extract_stickers(comments + replies)
         return {
             "video_id": video_id,
-            "total_comments": len(comments),
+            "total_comments": total_comments,
             "stickers_found": 0,
             "stickers": [],
             "all_stickers_count": len(all_stickers),
-            "message": f"No stickers found from @{req.username.strip().lstrip('@')}. "
+            "message": f"No stickers found from @{req.username.strip().lstrip('@')} — scanned "
+                       f"{total_comments} comments including replies. "
                        f"This video has {len(all_stickers)} stickers from other users.",
         }
 
@@ -473,7 +554,7 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
 
     return {
         "video_id": video_id,
-        "total_comments": len(comments),
+        "total_comments": total_comments,
         "stickers_found": len(stickers),
         "stickers": stickers,
     }
