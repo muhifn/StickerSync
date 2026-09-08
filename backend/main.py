@@ -52,19 +52,24 @@ USER_AGENT_ALT = (
     "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 )
 # Maximum-reliability scan engine: sequential pages, generous retries with
-# fingerprint rotation (TikTok soft-blocks datacenter IPs intermittently).
-PAGE_ATTEMPTS = 4          # attempts per page: (UA, aid) rotation below
+# UA rotation (TikTok soft-blocks datacenter IPs intermittently).
+# Dual-aid scan (Phase 1): aid=1988 returns comment payloads (sticker structs),
+# aid=1180/1233 returns a WIDER comment set but strips media payloads and marks
+# visual comments via text instead ("[Sticker] " prefix / " [Photo]" suffix).
+# We union both: 1988 versions win (payloads), 1180 gives detection coverage.
+SCAN_AIDS = (1988, 1180)
+PAGE_ATTEMPTS = 4          # attempts per page: UA rotation below (same aid)
 PAGE_RETRY_DELAYS = [0.4, 0.8, 1.6]   # seconds before attempts 2/3/4
 PAGE_GAP = 0.25            # pause between sequential pages (be kind to TikTok)
 MAX_COMMENT_PAGES = 60     # hard cap: 60*50 = 3000 top-level comments per video
 MAX_REPLY_THREADS = 150    # hard cap: reply threads scanned per video
 REPLY_CONCURRENCY = 2      # conservative parallelism for reply threads
 SCAN_CACHE_TTL = 90        # seconds — repeated scans of the same video are served
-FINGERPRINTS = [
-    {"User-Agent": None, "aid": 1988},   # None = client default (desktop)
-    {"User-Agent": USER_AGENT_ALT, "aid": 1988},
-    {"User-Agent": None, "aid": 1128},
-    {"User-Agent": USER_AGENT_ALT, "aid": 1128},
+UA_ROTATION: list[Optional[str]] = [
+    None,            # None = client default (desktop)
+    USER_AGENT_ALT,  # mobile Safari
+    None,
+    USER_AGENT_ALT,
 ]
 
 http_client: Optional[httpx.AsyncClient] = None
@@ -283,18 +288,21 @@ def extract_video_id(url: str) -> Optional[str]:
     return None
 
 
-async def _fetch_page_with_retry(video_id: str, cursor: int, api: str, comment_id: Optional[str] = None) -> Optional[dict]:
+async def _fetch_page_with_retry(
+    video_id: str, cursor: int, api: str,
+    comment_id: Optional[str] = None, aid: int = 1988,
+) -> Optional[dict]:
     """Fetch one comment/reply page with up to PAGE_ATTEMPTS tries, rotating
-    (User-Agent, aid) fingerprints. Returns parsed dict, or None if every
-    fingerprint failed (exception / non-200 / broken JSON)."""
+    User-Agent within the same aid. Returns parsed dict, or None if every
+    attempt failed (exception / non-200 / broken JSON)."""
     client = get_client()
-    for attempt, fp in enumerate(FINGERPRINTS):
+    for attempt, ua in enumerate(UA_ROTATION[:PAGE_ATTEMPTS]):
         if attempt > 0:
             await asyncio.sleep(PAGE_RETRY_DELAYS[attempt - 1])
         headers = {}
-        if fp["User-Agent"]:
-            headers["User-Agent"] = fp["User-Agent"]
-        params: dict = {"aid": fp["aid"], "count": 50, "cursor": cursor}
+        if ua:
+            headers["User-Agent"] = ua
+        params: dict = {"aid": aid, "count": 50, "cursor": cursor}
         if api == TIKTOK_REPLY_API:
             params["item_id"] = video_id
             params["comment_id"] = comment_id
@@ -327,9 +335,9 @@ class ScanThrottled(Exception):
     """TikTok returned empty pages across ALL fingerprints — soft rate-limit."""
 
 
-async def fetch_comments_sequential(video_id: str) -> list[dict]:
+async def fetch_comments_sequential(video_id: str, aid: int = 1988) -> list[dict]:
     """Maximum-reliability top-level scan: strictly sequential pages with
-    PAGE_GAP pacing, per-page fingerprint-retried fetches. Stops only on
+    PAGE_GAP pacing, per-page retried fetches. Stops only on
     has_more == 0, two consecutive fully-failed pages, or the page cap.
     Raises ScanThrottled if page 0 stays empty after every retry (and the
     video itself exists) — the caller maps that to a 503, not a misleading 404."""
@@ -339,7 +347,7 @@ async def fetch_comments_sequential(video_id: str) -> list[dict]:
     cursor = 0
 
     while pages_fetched < MAX_COMMENT_PAGES:
-        page = await _fetch_page_with_retry(video_id, cursor, TIKTOK_COMMENT_API)
+        page = await _fetch_page_with_retry(video_id, cursor, TIKTOK_COMMENT_API, aid=aid)
         pages_fetched += 1
 
         if page is None:
@@ -382,11 +390,11 @@ async def fetch_comments_sequential(video_id: str) -> list[dict]:
     return deduped
 
 
-async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[dict]:
+async def fetch_reply_comments(video_id: str, top_comments: list[dict], aid: int = 1988) -> list[dict]:
     """Fetch replies for every top-level thread that declares replies.
     item_id + comment_id params are required (without item_id the API returns
     an empty list even when replies exist). Concurrency-limited to
-    REPLY_CONCURRENCY with the same per-page fingerprint retries.
+    REPLY_CONCURRENCY with the same per-page retries.
     Dedup by cid across threads."""
     threads = [c for c in top_comments if c.get("reply_comment_total", 0) > 0]
     threads = threads[:MAX_REPLY_THREADS]
@@ -399,7 +407,7 @@ async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[
         while True:
             async with sem:
                 page = await _fetch_page_with_retry(
-                    video_id, cursor, TIKTOK_REPLY_API, comment_id=cid
+                    video_id, cursor, TIKTOK_REPLY_API, comment_id=cid, aid=aid
                 )
             if page is None:
                 return  # thread unreachable — skip, don't fail the scan
@@ -606,10 +614,43 @@ def lru_put(sticker_id: str, data: bytes) -> None:
 _scan_cache: dict[tuple, tuple[float, dict]] = {}
 
 
+def _visual_marker(c: dict) -> Optional[str]:
+    """Detect visual comments in payload-stripped (aid=1180) responses.
+    TikTok marks them via text: '[Sticker] ...' prefix for pack stickers,
+    '... [Photo]' suffix for photo comments. Returns 'sticker' / 'photo' / None."""
+    t = c.get("text") or ""
+    if t.startswith("[Sticker] "):
+        return "sticker"
+    if t.endswith(" [Photo]"):
+        return "photo"
+    return None
+
+
+def _merge_comments(primary: list[dict], secondary: list[dict]) -> list[dict]:
+    """Union by cid — primary version wins (it carries media payloads)."""
+    by_cid: dict = {}
+    for c in secondary:
+        if c.get("cid") is not None:
+            by_cid[c["cid"]] = c
+    for c in primary:
+        if c.get("cid") is not None:
+            by_cid[c["cid"]] = c
+    return list(by_cid.values())
+
+
+def _user_matches(c: dict, username_lower: str) -> bool:
+    user = c.get("user", {})
+    return (
+        username_lower == user.get("unique_id", "").lower()
+        or username_lower in user.get("nickname", "").lower()
+    )
+
+
 async def _fetch_core(req: "FetchRequest", request: "Request"):
     """Scan a video's comments (free). Pure logic, no background tasks.
-    Maximum-reliability engine: sequential pages + fingerprint retries +
-    reply-thread scan + 90s result cache."""
+    Dual-aid engine: aid=1988 returns media payloads, aid=1180 returns a
+    WIDER comment set with payloads stripped (but text markers). Union both
+    (1988 wins), scan reply threads via both aids, 90s result cache."""
     url = req.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -630,31 +671,46 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
         return cached
 
     t0 = time.time()
-    try:
-        comments = await fetch_comments_sequential(video_id)
-    except ScanThrottled:
-        raise HTTPException(
-            status_code=503,
-            detail="TikTok is rate-limiting scans right now — please try again in a minute.",
-        )
+    top_payload: list[dict] = []
+    top_wide: list[dict] = []
+    throttled_aids = 0
+    # pass 1: top-level via both aids (sequential, paced) — one aid being
+    # throttled must not kill the scan if the other one works
+    for aid in SCAN_AIDS:
+        try:
+            fetched = await fetch_comments_sequential(video_id, aid=aid)
+        except ScanThrottled:
+            throttled_aids += 1
+            continue
+        if aid == 1988:
+            top_payload = fetched
+        else:
+            top_wide = fetched
+    comments = _merge_comments(top_payload, top_wide)
     if not comments:
-        if await video_exists(video_id):
+        if throttled_aids == len(SCAN_AIDS) or await video_exists(video_id):
             raise HTTPException(
                 status_code=503,
                 detail="TikTok is rate-limiting scans right now — please try again in a minute.",
             )
         raise HTTPException(status_code=404, detail="No comments found for this video")
 
-    # stickers posted as REPLIES live in threads — scan those too
-    replies = await fetch_reply_comments(video_id, comments)
+    # pass 2: reply threads (union) — replies via BOTH aids, 1988 first for
+    # payloads (cross-aid thread fetch recovers stickers invisible in 1988's list)
+    threads = [c for c in comments if c.get("reply_comment_total", 0) > 0]
+    replies_payload = await fetch_reply_comments(video_id, threads, aid=1988)
+    replies_wide = await fetch_reply_comments(video_id, threads, aid=1180)
+    replies = _merge_comments(replies_payload, replies_wide)
     total_comments = len(comments) + len(replies)
 
     stickers = extract_stickers(comments + replies, req.username)
 
     took_ms = int((time.time() - t0) * 1000)
     print(
-        f"[scan] video={video_id} user={req.username or '-'} top={len(comments)} "
-        f"replies={len(replies)} stickers={len(stickers)} {took_ms}ms",
+        f"[scan] video={video_id} user={req.username or '-'} "
+        f"top={len(comments)}({len(top_payload)}+{len(top_wide)}) "
+        f"replies={len(replies)}({len(replies_payload)}+{len(replies_wide)}) "
+        f"stickers={len(stickers)} {took_ms}ms",
         flush=True,
     )
 
@@ -668,15 +724,45 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     result: Optional[dict] = None
     if not stickers and req.username:
         all_stickers = extract_stickers(comments + replies)
-        result = {
-            **base,
-            "stickers_found": 0,
-            "stickers": [],
-            "all_stickers_count": len(all_stickers),
-            "message": f"No stickers found from @{req.username.strip().lstrip('@')} — scanned "
-                       f"{total_comments} comments including replies. "
-                       f"This video has {len(all_stickers)} stickers from other users.",
-        }
+        uname = req.username.strip().lstrip("@")
+        # detection pass: username match + visual marker in the wide set,
+        # but no downloadable payload (TikTok strips media for those comments)
+        ul = uname.lower()
+        detected = 0
+        for c in top_wide + replies_wide:
+            if not _user_matches(c, ul):
+                continue
+            u = next(
+                (m for m in comments + replies if m.get("cid") == c.get("cid")), c
+            )
+            if u.get("cmt_sticker_struct") or u.get("image_list"):
+                continue  # downloadable — would have been found above
+            if _visual_marker(c):
+                detected += 1
+        if detected:
+            result = {
+                **base,
+                "stickers_found": 0,
+                "stickers": [],
+                "all_stickers_count": len(all_stickers),
+                "blocked_count": detected,
+                "message": f"@{uname} did post {detected} visual comment(s) here, but TikTok "
+                           f"blocks external download for them — only the app can save those. "
+                           f"Scanned {total_comments} comments including replies; "
+                           f"this video has {len(all_stickers)} downloadable stickers from other users.",
+            }
+        else:
+            result = {
+                **base,
+                "stickers_found": 0,
+                "stickers": [],
+                "all_stickers_count": len(all_stickers),
+                "message": f"No stickers found from @{uname} — scanned "
+                           f"{total_comments} comments including replies. "
+                           f"This video has {len(all_stickers)} stickers from other users. "
+                           f"(If you're sure they commented, the comment may be deleted, "
+                           f"private, or the username misspelled.)",
+            }
     elif not stickers:
         raise HTTPException(
             status_code=404,
