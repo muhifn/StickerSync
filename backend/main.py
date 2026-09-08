@@ -42,14 +42,30 @@ app.add_middleware(
 
 TIKTOK_COMMENT_API = "https://www.tiktok.com/api/comment/list/"
 TIKTOK_REPLY_API = "https://www.tiktok.com/api/comment/list/reply/"
+TIKTOK_OEMBED = "https://www.tiktok.com/oembed"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
-PARALLEL_PAGES = 3          # top-level pages fetched per parallel batch
-MAX_COMMENT_PAGES = 60      # hard cap: 60*50 = 3000 top-level comments per video
-MAX_REPLY_THREADS = 150     # hard cap: reply threads scanned per video
-REPLY_CONCURRENCY = 5       # parallel reply-thread fetches (TikTok rate safety)
+USER_AGENT_ALT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+)
+# Maximum-reliability scan engine: sequential pages, generous retries with
+# fingerprint rotation (TikTok soft-blocks datacenter IPs intermittently).
+PAGE_ATTEMPTS = 4          # attempts per page: (UA, aid) rotation below
+PAGE_RETRY_DELAYS = [0.4, 0.8, 1.6]   # seconds before attempts 2/3/4
+PAGE_GAP = 0.25            # pause between sequential pages (be kind to TikTok)
+MAX_COMMENT_PAGES = 60     # hard cap: 60*50 = 3000 top-level comments per video
+MAX_REPLY_THREADS = 150    # hard cap: reply threads scanned per video
+REPLY_CONCURRENCY = 2      # conservative parallelism for reply threads
+SCAN_CACHE_TTL = 90        # seconds — repeated scans of the same video are served
+FINGERPRINTS = [
+    {"User-Agent": None, "aid": 1988},   # None = client default (desktop)
+    {"User-Agent": USER_AGENT_ALT, "aid": 1988},
+    {"User-Agent": None, "aid": 1128},
+    {"User-Agent": USER_AGENT_ALT, "aid": 1128},
+]
 
 http_client: Optional[httpx.AsyncClient] = None
 resize_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="resize")
@@ -267,49 +283,94 @@ def extract_video_id(url: str) -> Optional[str]:
     return None
 
 
-async def _fetch_comment_page(client: httpx.AsyncClient, video_id: str, cursor: int) -> dict:
-    resp = await client.get(
-        TIKTOK_COMMENT_API,
-        params={"aweme_id": video_id, "count": 50, "cursor": cursor, "aid": 1988},
-    )
-    return resp.json()
-
-
-async def fetch_comments_parallel(video_id: str) -> list[dict]:
-    """Fetch ALL top-level comment pages: rolling parallel batches of
-    PARALLEL_PAGES pages each until the API says has_more == 0 / empty page /
-    MAX_COMMENT_PAGES cap. Dedup by cid — TikTok's dynamic sort returns overlaps.
-    Returns top-level comments only; replies are fetched by fetch_reply_comments."""
+async def _fetch_page_with_retry(video_id: str, cursor: int, api: str, comment_id: Optional[str] = None) -> Optional[dict]:
+    """Fetch one comment/reply page with up to PAGE_ATTEMPTS tries, rotating
+    (User-Agent, aid) fingerprints. Returns parsed dict, or None if every
+    fingerprint failed (exception / non-200 / broken JSON)."""
     client = get_client()
+    for attempt, fp in enumerate(FINGERPRINTS):
+        if attempt > 0:
+            await asyncio.sleep(PAGE_RETRY_DELAYS[attempt - 1])
+        headers = {}
+        if fp["User-Agent"]:
+            headers["User-Agent"] = fp["User-Agent"]
+        params: dict = {"aid": fp["aid"], "count": 50, "cursor": cursor}
+        if api == TIKTOK_REPLY_API:
+            params["item_id"] = video_id
+            params["comment_id"] = comment_id
+        else:
+            params["aweme_id"] = video_id
+        try:
+            resp = await client.get(api, params=params, headers=headers)
+            if resp.status_code != 200:
+                continue
+            return resp.json()
+        except Exception:
+            continue
+    return None
 
-    first = await _fetch_comment_page(client, video_id, 0)
-    comments: list[dict] = list(first.get("comments") or [])
-    if not comments:
-        return comments
 
-    has_more = bool(first.get("has_more"))
-    cursor = 50
-    pages_fetched = 1
-
-    while has_more and pages_fetched < MAX_COMMENT_PAGES:
-        batch = min(PARALLEL_PAGES, MAX_COMMENT_PAGES - pages_fetched)
-        results = await asyncio.gather(
-            *[_fetch_comment_page(client, video_id, cursor + 50 * i) for i in range(batch)]
+async def video_exists(video_id: str) -> bool:
+    """Cheap existence check via TikTok oEmbed (public, separate from the
+    comment API quota). Distinguishes 'video gone' from 'throttled'."""
+    client = get_client()
+    try:
+        resp = await client.get(
+            TIKTOK_OEMBED, params={"url": f"https://www.tiktok.com/@x/video/{video_id}"}
         )
-        got_any = False
-        for r in results:
-            page = r.get("comments") or []
-            comments.extend(page)
-            if page:
-                got_any = True
-            if not r.get("has_more"):
-                has_more = False
-        pages_fetched += batch
-        cursor += 50 * batch
-        if not got_any:
-            has_more = False
+        return resp.status_code == 200
+    except Exception:
+        return False
 
-    # dedup by cid
+
+class ScanThrottled(Exception):
+    """TikTok returned empty pages across ALL fingerprints — soft rate-limit."""
+
+
+async def fetch_comments_sequential(video_id: str) -> list[dict]:
+    """Maximum-reliability top-level scan: strictly sequential pages with
+    PAGE_GAP pacing, per-page fingerprint-retried fetches. Stops only on
+    has_more == 0, two consecutive fully-failed pages, or the page cap.
+    Raises ScanThrottled if page 0 stays empty after every retry (and the
+    video itself exists) — the caller maps that to a 503, not a misleading 404."""
+    comments: list[dict] = []
+    consecutive_dead = 0
+    pages_fetched = 0
+    cursor = 0
+
+    while pages_fetched < MAX_COMMENT_PAGES:
+        page = await _fetch_page_with_retry(video_id, cursor, TIKTOK_COMMENT_API)
+        pages_fetched += 1
+
+        if page is None:
+            consecutive_dead += 1
+            if pages_fetched == 1:
+                # page 0 unfetchable across all fingerprints: throttle vs gone video
+                if await video_exists(video_id):
+                    raise ScanThrottled()
+                raise ScanThrottled()  # caller also treats as throttle — honest retry msg
+            if consecutive_dead >= 2:
+                break  # TikTok is pushing back hard mid-scan — keep what we have
+            cursor += 50
+            continue
+
+        batch = page.get("comments") or []
+        comments.extend(batch)
+        if batch:
+            consecutive_dead = 0
+        elif pages_fetched > 1:
+            # empty page that DID respond — could be throttle shadow or true end;
+            # only trust it as the end when the API says so
+            consecutive_dead += 1
+            if consecutive_dead >= 2 and not page.get("has_more"):
+                break
+
+        if not page.get("has_more"):
+            break
+        cursor += 50
+        await asyncio.sleep(PAGE_GAP)
+
+    # dedup by cid — TikTok's dynamic sort overlaps pages
     seen: set[int] = set()
     deduped: list[dict] = []
     for c in comments:
@@ -323,10 +384,10 @@ async def fetch_comments_parallel(video_id: str) -> list[dict]:
 
 async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[dict]:
     """Fetch replies for every top-level thread that declares replies.
-    Uses item_id + comment_id params (required — without item_id the API
-    returns an empty list even when replies exist). Concurrency-limited
-    to keep TikTok rate limits happy. Dedup by cid across threads."""
-    client = get_client()
+    item_id + comment_id params are required (without item_id the API returns
+    an empty list even when replies exist). Concurrency-limited to
+    REPLY_CONCURRENCY with the same per-page fingerprint retries.
+    Dedup by cid across threads."""
     threads = [c for c in top_comments if c.get("reply_comment_total", 0) > 0]
     threads = threads[:MAX_REPLY_THREADS]
 
@@ -337,27 +398,19 @@ async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[
         cursor = 0
         while True:
             async with sem:
-                try:
-                    resp = await client.get(
-                        TIKTOK_REPLY_API,
-                        params={
-                            "item_id": video_id,
-                            "comment_id": cid,
-                            "count": 50,
-                            "cursor": cursor,
-                            "aid": 1988,
-                        },
-                    )
-                    r = resp.json()
-                except Exception:
-                    return
-            page = r.get("comments") or []
-            if not page:
+                page = await _fetch_page_with_retry(
+                    video_id, cursor, TIKTOK_REPLY_API, comment_id=cid
+                )
+            if page is None:
+                return  # thread unreachable — skip, don't fail the scan
+            batch = page.get("comments") or []
+            if not batch:
                 return
-            replies.extend(page)
-            if not r.get("has_more"):
+            replies.extend(batch)
+            if not page.get("has_more"):
                 return
             cursor += 50
+            await asyncio.sleep(PAGE_GAP)
 
     await asyncio.gather(*[thread_replies(c["cid"]) for c in threads if c.get("cid")])
 
@@ -510,8 +563,15 @@ def lru_put(sticker_id: str, data: bytes) -> None:
         _lru_cache.pop(oldest, None)
 
 
+# scan result cache: (video_id, username) -> (ts, result) — repeated scans
+# of the same video within TTL are instant and don't hammer TikTok
+_scan_cache: dict[tuple, tuple[float, dict]] = {}
+
+
 async def _fetch_core(req: "FetchRequest", request: "Request"):
-    """Scan a video's comments (free). Pure logic, no background tasks."""
+    """Scan a video's comments (free). Pure logic, no background tasks.
+    Maximum-reliability engine: sequential pages + fingerprint retries +
+    reply-thread scan + 90s result cache."""
     url = req.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -523,8 +583,28 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     if not video_id:
         raise HTTPException(status_code=400, detail="Could not extract video ID from URL")
 
-    comments = await fetch_comments_parallel(video_id)
+    # cache hit? (same video + username within TTL)
+    cache_key = (video_id, (req.username or "").strip().lower())
+    hit = _scan_cache.get(cache_key)
+    if hit and time.time() - hit[0] < SCAN_CACHE_TTL:
+        cached = dict(hit[1])
+        cached["cached"] = True
+        return cached
+
+    t0 = time.time()
+    try:
+        comments = await fetch_comments_sequential(video_id)
+    except ScanThrottled:
+        raise HTTPException(
+            status_code=503,
+            detail="TikTok is rate-limiting scans right now — please try again in a minute.",
+        )
     if not comments:
+        if await video_exists(video_id):
+            raise HTTPException(
+                status_code=503,
+                detail="TikTok is rate-limiting scans right now — please try again in a minute.",
+            )
         raise HTTPException(status_code=404, detail="No comments found for this video")
 
     # stickers posted as REPLIES live in threads — scan those too
@@ -533,11 +613,25 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
 
     stickers = extract_stickers(comments + replies, req.username)
 
+    took_ms = int((time.time() - t0) * 1000)
+    print(
+        f"[scan] video={video_id} user={req.username or '-'} top={len(comments)} "
+        f"replies={len(replies)} stickers={len(stickers)} {took_ms}ms",
+        flush=True,
+    )
+
+    base = {
+        "video_id": video_id,
+        "total_comments": total_comments,
+        "scanned_top": len(comments),
+        "scanned_replies": len(replies),
+    }
+
+    result: Optional[dict] = None
     if not stickers and req.username:
         all_stickers = extract_stickers(comments + replies)
-        return {
-            "video_id": video_id,
-            "total_comments": total_comments,
+        result = {
+            **base,
             "stickers_found": 0,
             "stickers": [],
             "all_stickers_count": len(all_stickers),
@@ -545,19 +639,26 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
                        f"{total_comments} comments including replies. "
                        f"This video has {len(all_stickers)} stickers from other users.",
         }
-
-    if not stickers:
+    elif not stickers:
         raise HTTPException(
             status_code=404,
             detail="No sticker comments found in this video's comments.",
         )
+    else:
+        result = {
+            **base,
+            "stickers_found": len(stickers),
+            "stickers": stickers,
+        }
 
-    return {
-        "video_id": video_id,
-        "total_comments": total_comments,
-        "stickers_found": len(stickers),
-        "stickers": stickers,
-    }
+    # remember (only successful shapes are cached)
+    _scan_cache[cache_key] = (time.time(), result)
+    # keep the cache bounded
+    while len(_scan_cache) > 64:
+        oldest = min(_scan_cache, key=lambda k: _scan_cache[k][0])
+        _scan_cache.pop(oldest, None)
+
+    return result
 
 
 @app.post("/fetch")
