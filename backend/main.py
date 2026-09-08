@@ -425,45 +425,83 @@ async def fetch_reply_comments(video_id: str, top_comments: list[dict]) -> list[
     return deduped
 
 
+def _photo_comment_sticker(c: dict) -> Optional[dict]:
+    """TikTok has a SECOND visual comment type: photo comments (image_list).
+    Users treat these images as 'stickers' just like official pack stickers —
+    extract them with the same shape as cmt_sticker_struct results."""
+    il = c.get("image_list") or []
+    if not il:
+        return None
+    img = il[0]
+    origin = img.get("origin_url") or img.get("crop_url") or {}
+    urls = origin.get("url_list") or []
+    if not urls:
+        return None
+    # prefer jpeg origin urls (full-size), dedup by uri
+    sid = f"photo_{origin.get('uri', '') or urls[0][-40:]}"
+    return {
+        "id": sid,
+        "name": "Photo sticker",
+        "width": origin.get("width", 0) or img.get("crop_url", {}).get("width", 0),
+        "height": origin.get("height", 0) or img.get("crop_url", {}).get("height", 0),
+        "is_animated": False,  # photo comments are static images
+        "url": urls[0],
+        "urls": urls,
+    }
+
+
 def extract_stickers(comments: list[dict], username: Optional[str] = None) -> list[dict]:
     seen = set()
     stickers = []
     username_lower = username.strip().lstrip("@").lower() if username else None
 
-    for c in comments:
-        struct = c.get("cmt_sticker_struct")
-        if not struct:
-            continue
-
+    def match_user(c: dict) -> bool:
+        if not username_lower:
+            return True
         user = c.get("user", {})
-        uid = user.get("unique_id", "")
-        nickname = user.get("nickname", "")
+        return (
+            username_lower == user.get("unique_id", "").lower()
+            or username_lower in user.get("nickname", "").lower()
+        )
 
-        if username_lower:
-            if username_lower != uid.lower() and username_lower not in nickname.lower():
+    for c in comments:
+        entry: Optional[dict] = None
+
+        struct = c.get("cmt_sticker_struct")
+        if struct:
+            if not match_user(c):
                 continue
+            sid = struct.get("id", "")
+            if sid in seen:
+                continue
+            animated = struct.get("animated_url", {})
+            static = struct.get("static_url", {})
+            high = animated.get("high_resolution_url") or static.get("high_resolution_url") or {}
+            urls = high.get("url_list", [])
+            if not urls:
+                continue
+            seen.add(sid)
+            entry = {
+                "id": sid,
+                "name": struct.get("name", "") or f"Sticker {sid[-6:]}",
+                "width": high.get("width", 0),
+                "height": high.get("height", 0),
+                "is_animated": bool(animated.get("high_resolution_url")),
+                "url": urls[0],
+                "urls": urls,
+            }
+        else:
+            # photo comments (image_list) — same treatment, same user filter
+            if not match_user(c):
+                continue
+            photo = _photo_comment_sticker(c)
+            if not photo or photo["id"] in seen:
+                continue
+            seen.add(photo["id"])
+            entry = photo
 
-        sid = struct.get("id", "")
-        if sid in seen:
-            continue
-        seen.add(sid)
-
-        animated = struct.get("animated_url", {})
-        static = struct.get("static_url", {})
-        high = animated.get("high_resolution_url") or static.get("high_resolution_url") or {}
-        urls = high.get("url_list", [])
-        if not urls:
-            continue
-
-        stickers.append({
-            "id": sid,
-            "name": struct.get("name", "") or f"Sticker {sid[-6:]}",
-            "width": high.get("width", 0),
-            "height": high.get("height", 0),
-            "is_animated": bool(animated.get("high_resolution_url")),
-            "url": urls[0],
-            "urls": urls,
-        })
+        if entry:
+            stickers.append(entry)
     return stickers
 
 
