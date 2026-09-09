@@ -20,6 +20,7 @@ import { Navbar } from "@/components/Navbar";
 import { LibraryBrowse } from "@/components/LibraryBrowse";
 import { TopUpModal } from "@/components/TopUpModal";
 import { CrateButton } from "@/components/CrateButton";
+import { TikTokSessionPanel } from "@/components/TikTokSessionPanel";
 
 interface Sticker {
   id: string;
@@ -328,6 +329,9 @@ export default function AppPage() {
           <p className="mt-4 text-sm leading-relaxed text-white/40">
             Scanning is free. Long-press a sticker comment, note the username, share the video link — paste both here.
           </p>
+          <div className="mt-5">
+            <TikTokSessionPanel />
+          </div>
         </section>
 
         <section className="relative z-[1] py-14 md:py-16" aria-live="polite">

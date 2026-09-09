@@ -225,3 +225,18 @@ BEGIN
     RETURN 'applied';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============ BYO TIKTOK SESSION (unlock login-gated stickers) ============
+-- User's OWN TikTok cookie, encrypted at rest with SESSION_ENC_KEY (AES-256-GCM).
+-- Payload research verdict 2026-09: comment sticker media is login-gated;
+-- anonymous + managed-pool sessions all receive image_list=null. With the
+-- user's own logged-in session the media payloads are returned.
+CREATE TABLE IF NOT EXISTS tiktok_session (
+    uid UUID PRIMARY KEY REFERENCES users(id),
+    enc_cookie TEXT NOT NULL,               -- AES-256-GCM (nonce||ciphertext, b64)
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','dead')),
+    username TEXT,                          -- TikTok account label (not secret)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_used_at TIMESTAMPTZ
+);

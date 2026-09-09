@@ -182,12 +182,27 @@ export interface Dict {
     free: { name: string; price: string; priceUnit: string; desc: string; items: string[]; cta: string };
     note: string;
   };
-  safetyTag: string;
-  safety: {
-    title: string;
-    lead: string;
-    items: { step: string; title: string; body: string }[];
-  };
+   safetyTag: string;
+   safety: {
+     title: string;
+     lead: string;
+     items: { step: string; title: string; body: string }[];
+   };
+   session: {
+     title: string;
+     desc: string;
+     linked: string;
+     link: string;
+     unlink: string;
+     cancel: string;
+     checking: string;
+     invalid: string;
+     warningTitle: string;
+     warning: string;
+     steps: string[];
+     placeholder: string;
+     privacy: string;
+   };
   faqTag: string;
   faq: { title: string; items: FaqItem[] };
   finalCta: {
@@ -502,6 +517,26 @@ export const dict: Record<Locale, Dict> = {
       note: "✓ Free tier stays free  ·  ✓ Top-ups via QRIS  ·  ✓ No subscription, it's credits",
     },
     safetyTag: "Is it safe?",
+    session: {
+      title: "TikTok session",
+      desc: "Some stickers are only visible to logged-in TikTok viewers. Link your own session to unlock them.",
+      linked: "Linked as {user} — blocked stickers are now unlocked in your scans.",
+      link: "Link session",
+      unlink: "Remove",
+      cancel: "Cancel",
+      checking: "Checking...",
+      invalid: "That cookie didn't work — make sure you copied the sessionid value from a logged-in tiktok.com tab.",
+      warningTitle: "Use your own account, at your own risk",
+      warning: "Scanning with your session means TikTok sees your account requesting comment pages. Heavy automated use can get the account flagged or banned. Keep it to your own scans, or skip this — anonymous scanning still works for everything else.",
+      steps: [
+        "Log in to tiktok.com in your browser",
+        "Open DevTools (F12) → Application → Cookies → tiktok.com",
+        "Copy the value of the cookie named “sessionid”",
+        "Paste it below",
+      ],
+      placeholder: "Paste the sessionid value here",
+      privacy: "Encrypted before storage. Never shown again — remove anytime.",
+    },
     safety: {
       title: "Yes.\nHere's what we touch.",
       lead: "And exactly what we don't.",
@@ -839,6 +874,26 @@ export const dict: Record<Locale, Dict> = {
       note: "✓ Free tier tetap gratis  ·  ✓ Top-up via QRIS  ·  ✓ Tanpa langganan, ini credit",
     },
     safetyTag: "Aman nggak?",
+    session: {
+      title: "Sesi TikTok",
+      desc: "Sebagian stiker hanya terlihat oleh penonton TikTok yang login. Hubungkan sesimu sendiri untuk membukanya.",
+      linked: "Terhubung sebagai {user} — stiker yang tadinya tersembunyi kini terbuka di scan kamu.",
+      link: "Hubungkan sesi",
+      unlink: "Hapus",
+      cancel: "Batal",
+      checking: "Memeriksa...",
+      invalid: "Cookie-nya tidak valid — pastikan kamu menyalin nilai sessionid dari tab tiktok.com yang sedang login.",
+      warningTitle: "Pakai akunmu sendiri, risiko ditanggung sendiri",
+      warning: "Scan dengan sesi berarti TikTok melihat akunmu meminta halaman komentar. Pemakaian otomatis berat bisa membuat akun di-flag atau dibanned. Batasi untuk scan sendiri, atau lewati ini — scan anonim tetap berfungsi untuk yang lainnya.",
+      steps: [
+        "Login ke tiktok.com di browser",
+        "Buka DevTools (F12) → Application → Cookies → tiktok.com",
+        "Copy nilai cookie bernama “sessionid”",
+        "Paste di bawah",
+      ],
+      placeholder: "Tempel nilai sessionid di sini",
+      privacy: "Dienkripsi sebelum disimpan. Tidak pernah ditampilkan lagi — hapus kapan saja.",
+    },
     safety: {
       title: "Aman.\nIni yang kami sentuh.",
       lead: "Dan yang tidak kami sentuh.",

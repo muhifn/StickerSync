@@ -22,6 +22,7 @@ import crate as crate_mod
 import db
 import library as lib
 import payments as pay_mod
+import tiktok_session as tsession
 
 app = FastAPI(title="StickerSync API", version="4.0.0")
 
@@ -291,10 +292,13 @@ def extract_video_id(url: str) -> Optional[str]:
 async def _fetch_page_with_retry(
     video_id: str, cursor: int, api: str,
     comment_id: Optional[str] = None, aid: int = 1988,
+    cookie: Optional[str] = None,
 ) -> Optional[dict]:
     """Fetch one comment/reply page with up to PAGE_ATTEMPTS tries, rotating
     User-Agent within the same aid. Returns parsed dict, or None if every
-    attempt failed (exception / non-200 / broken JSON)."""
+    attempt failed (exception / non-200 / broken JSON).
+    With `cookie` (user's own logged-in session), media payloads are
+    included by TikTok for comments anonymous scans see stripped."""
     client = get_client()
     for attempt, ua in enumerate(UA_ROTATION[:PAGE_ATTEMPTS]):
         if attempt > 0:
@@ -302,6 +306,8 @@ async def _fetch_page_with_retry(
         headers = {}
         if ua:
             headers["User-Agent"] = ua
+        if cookie:
+            headers["Cookie"] = cookie
         params: dict = {"aid": aid, "count": 50, "cursor": cursor}
         if api == TIKTOK_REPLY_API:
             params["item_id"] = video_id
@@ -335,7 +341,9 @@ class ScanThrottled(Exception):
     """TikTok returned empty pages across ALL fingerprints — soft rate-limit."""
 
 
-async def fetch_comments_sequential(video_id: str, aid: int = 1988) -> list[dict]:
+async def fetch_comments_sequential(
+    video_id: str, aid: int = 1988, cookie: Optional[str] = None
+) -> list[dict]:
     """Maximum-reliability top-level scan: strictly sequential pages with
     PAGE_GAP pacing, per-page retried fetches. Stops only on
     has_more == 0, two consecutive fully-failed pages, or the page cap.
@@ -347,7 +355,9 @@ async def fetch_comments_sequential(video_id: str, aid: int = 1988) -> list[dict
     cursor = 0
 
     while pages_fetched < MAX_COMMENT_PAGES:
-        page = await _fetch_page_with_retry(video_id, cursor, TIKTOK_COMMENT_API, aid=aid)
+        page = await _fetch_page_with_retry(
+            video_id, cursor, TIKTOK_COMMENT_API, aid=aid, cookie=cookie
+        )
         pages_fetched += 1
 
         if page is None:
@@ -390,7 +400,10 @@ async def fetch_comments_sequential(video_id: str, aid: int = 1988) -> list[dict
     return deduped
 
 
-async def fetch_reply_comments(video_id: str, top_comments: list[dict], aid: int = 1988) -> list[dict]:
+async def fetch_reply_comments(
+    video_id: str, top_comments: list[dict], aid: int = 1988,
+    cookie: Optional[str] = None,
+) -> list[dict]:
     """Fetch replies for every top-level thread that declares replies.
     item_id + comment_id params are required (without item_id the API returns
     an empty list even when replies exist). Concurrency-limited to
@@ -407,7 +420,8 @@ async def fetch_reply_comments(video_id: str, top_comments: list[dict], aid: int
         while True:
             async with sem:
                 page = await _fetch_page_with_retry(
-                    video_id, cursor, TIKTOK_REPLY_API, comment_id=cid, aid=aid
+                    video_id, cursor, TIKTOK_REPLY_API, comment_id=cid,
+                    aid=aid, cookie=cookie,
                 )
             if page is None:
                 return  # thread unreachable — skip, don't fail the scan
@@ -646,11 +660,15 @@ def _user_matches(c: dict, username_lower: str) -> bool:
     )
 
 
-async def _fetch_core(req: "FetchRequest", request: "Request"):
+async def _fetch_core(
+    req: "FetchRequest", request: "Request", user_session: Optional[dict] = None
+):
     """Scan a video's comments (free). Pure logic, no background tasks.
     Dual-aid engine: aid=1988 returns media payloads, aid=1180 returns a
     WIDER comment set with payloads stripped (but text markers). Union both
-    (1988 wins), scan reply threads via both aids, 90s result cache."""
+    (1988 wins), scan reply threads via both aids, 90s result cache.
+    With user_session (BYO cookie): logged-in fetch becomes primary — TikTok
+    returns media payloads only to logged-in sessions (research 2026-09)."""
     url = req.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -662,8 +680,12 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     if not video_id:
         raise HTTPException(status_code=400, detail="Could not extract video ID from URL")
 
-    # cache hit? (same video + username within TTL)
-    cache_key = (video_id, (req.username or "").strip().lower())
+    # cache hit? (same video + username + session-mode within TTL)
+    cache_key = (
+        video_id,
+        (req.username or "").strip().lower(),
+        bool(user_session),
+    )
     hit = _scan_cache.get(cache_key)
     if hit and time.time() - hit[0] < SCAN_CACHE_TTL:
         cached = dict(hit[1])
@@ -674,6 +696,21 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     top_payload: list[dict] = []
     top_wide: list[dict] = []
     throttled_aids = 0
+    # BYO-session pass (0): user's own logged-in cookie sees ALL comments
+    # WITH media payloads (research verdict: payloads are login-gated).
+    # This becomes the primary fetch when linked; anonymous dual-aid below
+    # still runs as a wide-union supplement + fallback.
+    session_cookie: Optional[str] = None
+    top_session: list[dict] = []
+    if user_session is not None:
+        session_cookie = user_session.get("cookie")
+    if session_cookie:
+        try:
+            top_session = await fetch_comments_sequential(
+                video_id, aid=1988, cookie=session_cookie
+            )
+        except ScanThrottled:
+            top_session = []
     # pass 1: top-level via both aids (sequential, paced) — one aid being
     # throttled must not kill the scan if the other one works
     for aid in SCAN_AIDS:
@@ -686,7 +723,8 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
             top_payload = fetched
         else:
             top_wide = fetched
-    comments = _merge_comments(top_payload, top_wide)
+    # session version wins over anonymous 1988 (it carries the payloads)
+    comments = _merge_comments(top_session or top_payload, top_wide)
     if not comments:
         if throttled_aids == len(SCAN_AIDS) or await video_exists(video_id):
             raise HTTPException(
@@ -698,9 +736,17 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     # pass 2: reply threads (union) — replies via BOTH aids, 1988 first for
     # payloads (cross-aid thread fetch recovers stickers invisible in 1988's list)
     threads = [c for c in comments if c.get("reply_comment_total", 0) > 0]
+    if session_cookie and top_session:
+        replies_session = await fetch_reply_comments(
+            video_id, threads, aid=1988, cookie=session_cookie
+        )
+    else:
+        replies_session = []
     replies_payload = await fetch_reply_comments(video_id, threads, aid=1988)
     replies_wide = await fetch_reply_comments(video_id, threads, aid=1180)
-    replies = _merge_comments(replies_payload, replies_wide)
+    replies = _merge_comments(
+        _merge_comments(replies_session, replies_payload), replies_wide
+    )
     total_comments = len(comments) + len(replies)
 
     stickers = extract_stickers(comments + replies, req.username)
@@ -708,8 +754,9 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
     took_ms = int((time.time() - t0) * 1000)
     print(
         f"[scan] video={video_id} user={req.username or '-'} "
-        f"top={len(comments)}({len(top_payload)}+{len(top_wide)}) "
-        f"replies={len(replies)}({len(replies_payload)}+{len(replies_wide)}) "
+        f"session={'y' if session_cookie else 'n'} "
+        f"top={len(comments)}({len(top_session)}s+{len(top_payload)}+{len(top_wide)}) "
+        f"replies={len(replies)}({len(replies_session)}s+{len(replies_payload)}+{len(replies_wide)}) "
         f"stickers={len(stickers)} {took_ms}ms",
         flush=True,
     )
@@ -786,9 +833,23 @@ async def _fetch_core(req: "FetchRequest", request: "Request"):
 
 
 @app.post("/fetch")
-async def fetch_stickers(req: FetchRequest, background: BackgroundTasks, request: Request):
-    """Scan + auto-persist to library (L2) in the background."""
-    result = await _fetch_core(req, request)
+async def fetch_stickers(
+    req: FetchRequest,
+    background: BackgroundTasks,
+    request: Request,
+    cred: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Scan + auto-persist to library (L2) in the background.
+    Logged-in users with a linked TikTok session get payload-full scans."""
+    user_session = None
+    if cred is not None:
+        try:
+            payload = auth.verify_token(cred.credentials)
+            if payload:
+                user_session = await tsession.get_active(payload["sub"])
+        except HTTPException:
+            user_session = None  # invalid/expired token: anonymous scan still fine
+    result = await _fetch_core(req, request, user_session=user_session)
     if isinstance(result, dict) and result.get("stickers"):
         background.add_task(lib.library_upsert, result["stickers"], result["video_id"])
     return result
@@ -961,6 +1022,49 @@ async def me(user: dict = Depends(current_user)):
         "pool_claims_today": row["pool_claims_today"],
         "pool_daily_limit": None if row["is_purchaser"] else 3,
     }
+
+
+# ---- BYO TikTok session: link / status / unlink ----
+
+class TikTokSessionRequest(BaseModel):
+    cookie: str
+
+
+@app.get("/tiktok-session")
+async def tiktok_session_status(user: dict = Depends(current_user)):
+    """Status only — the cookie itself is never returned to any client."""
+    sess = await tsession.get_active(user["sub"])
+    if not sess:
+        return {"linked": False}
+    return {
+        "linked": True,
+        "username": sess["username"],
+        "updated_at": sess["updated_at"],
+    }
+
+
+@app.post("/tiktok-session")
+async def tiktok_session_link(
+    req: TikTokSessionRequest, request: Request, user: dict = Depends(current_user)
+):
+    """Link the user's own TikTok cookie (sessionid). Validated live against
+    TikTok before storing; stored AES-256-GCM encrypted at rest."""
+    rate_limit_auth(request.client.host if request else "local")
+    cookie = (req.cookie or "").strip()
+    if not cookie or len(cookie) > 4096:
+        raise HTTPException(status_code=400, detail="Cookie missing or too long")
+    check = await tsession.validate_cookie(cookie)
+    if not check.get("ok"):
+        raise HTTPException(status_code=400, detail=check.get("reason") or "Invalid session")
+    await tsession.save(user["sub"], cookie, check.get("username") or "")
+    return {"linked": True, "username": check.get("username")}
+
+
+@app.delete("/tiktok-session")
+async def tiktok_session_unlink(user: dict = Depends(current_user)):
+    """Remove the stored session permanently."""
+    await tsession.remove(user["sub"])
+    return {"linked": False}
 
 
 async def _get_sticker_bytes(sticker_id: str, urls: list[str]) -> bytes:
